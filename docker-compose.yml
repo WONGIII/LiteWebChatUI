@@ -1,0 +1,11 @@
+services:
+  litechat:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./chat.db:/app/chat.db
+      - ./uploads:/app/uploads
+    environment:
+      - PORT=3000
+    restart: unless-stopped

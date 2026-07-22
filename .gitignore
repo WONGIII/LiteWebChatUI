@@ -1,5 +1,5 @@
 node_modules/
-chat.db
+chat.db*
 uploads/
 *.log
 .env
