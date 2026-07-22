@@ -1,0 +1,178 @@
+<h2>选择整体布局风格</h2>
+<p class="subtitle">参考 ChatGPT 当前对话界面，对比三种布局方向。点击你想选的方向。</p>
+
+<style>
+  .layout-mock {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    height: 320px;
+    display: flex;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .layout-mock:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+  .mock-side {
+    width: 30%;
+    background: #f9fafb;
+    border-right: 1px solid #e5e7eb;
+    padding: 12px 10px;
+    display: flex; flex-direction: column;
+    font-size: 11px;
+  }
+  .mock-newbtn {
+    background: #111827; color: #fff;
+    padding: 6px 8px; border-radius: 6px;
+    text-align: center; font-size: 10px;
+    margin-bottom: 10px;
+  }
+  .mock-item {
+    padding: 6px 8px; border-radius: 6px;
+    color: #374151; margin-bottom: 4px;
+    background: transparent;
+  }
+  .mock-item.active { background: #e5e7eb; font-weight: 600; }
+  .mock-main {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 14px 18px;
+  }
+  .mock-bubble-user {
+    align-self: flex-end;
+    background: #f3f4f6; color: #111827;
+    padding: 8px 12px; border-radius: 16px;
+    max-width: 70%; font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .mock-bubble-ai {
+    align-self: flex-start;
+    color: #111827;
+    padding: 4px 0; max-width: 80%;
+    font-size: 11px; line-height: 1.5;
+  }
+  .mock-aiavatar {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: linear-gradient(135deg,#10a37f,#1a7f64);
+    display: inline-block; vertical-align: middle;
+    margin-right: 6px;
+  }
+  .mock-thinking {
+    align-self: flex-start;
+    background: #f0fdf9; border: 1px solid #d1fae5;
+    color: #065f46; padding: 6px 10px;
+    border-radius: 8px; font-size: 10px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+    max-width: 80%;
+  }
+  .mock-thinking::before {
+    content: '🧠'; font-size: 10px;
+  }
+  .mock-thinking-detail {
+    color: #065f46; font-style: italic;
+    font-size: 9.5px; padding-left: 14px;
+    max-width: 80%; margin-bottom: 8px;
+    align-self: flex-start;
+  }
+  .mock-inputbar {
+    margin-top: auto;
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center;
+    font-size: 10px; color: #9ca3af;
+  }
+  .mock-inputbar .send-dot {
+    margin-left: auto;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #111827; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .mock-topright {
+    position: absolute; top: 8px; right: 12px;
+    font-size: 9px; color: #6b7280;
+  }
+  .layout-card { position: relative; }
+  .layout-card .caption { padding: 12px 4px 4px; }
+  .layout-card .caption h3 { margin: 0; font-size: 14px; }
+  .layout-card .caption p { margin: 4px 0 0; font-size: 11px; color: #6b7280; }
+</style>
+
+<div class="cards" style="grid-template-columns: repeat(3, 1fr); gap: 18px;">
+
+  <!-- A: 经典 ChatGPT 风格 -->
+  <div class="card layout-card" data-choice="classic" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 14px;">
+      <div class="layout-mock">
+        <div class="mock-side">
+          <div class="mock-newbtn">+ 新对话</div>
+          <div class="mock-item active">关于 React 的问题</div>
+          <div class="mock-item">今天吃什么</div>
+          <div class="mock-item">代码 review</div>
+          <div class="mock-item" style="margin-top: auto; color:#6b7280">用户菜单</div>
+        </div>
+        <div class="mock-main">
+          <div class="mock-bubble-user">怎么用 React 实现拖拽？</div>
+          <div class="mock-thinking">思考中... 用户先拖改元素位置</div>
+          <div class="mock-bubble-ai"><span class="mock-aiavatar"></span>可以用原生 HTML5 拖拽 API 或 react-dnd...</div>
+          <div class="mock-inputbar">问点别的...<span class="send-dot">↑</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 经典 ChatGPT 风</h3>
+      <p>浅色主导，左侧暗色侧栏，对话气泡居中，思考链折叠在 AI 回复上方。最贴近 ChatGPT 当前形态。</p>
+    </div>
+  </div>
+
+  <!-- B: 极简纯净风 -->
+  <div class="card layout-card" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 14px;">
+      <div class="layout-mock" style="border-radius: 14px;">
+        <div class="mock-side" style="background: #fff; border-right: 1px solid #f3f4f6;">
+          <div class="mock-newbtn" style="background: #fff; color:#111827; border: 1px solid #e5e7eb;">+ 新对话</div>
+          <div class="mock-item" style="color:#6b7280">关于 React 的问题</div>
+          <div class="mock-item" style="color:#6b7280">今天吃什么</div>
+          <div class="mock-item active" style="background: #f9fafb;">代码 review</div>
+        </div>
+        <div class="mock-main" style="padding: 14px 22px;">
+          <div class="mock-bubble-user" style="background: #f9fafb;">怎么用 React 实现拖拽？</div>
+          <div class="mock-thinking" style="background: #fff; border: 1px dashed #d1d5db; color:#6b7280;">思考过程 · 点击展开</div>
+          <div class="mock-bubble-ai"><span class="mock-aiavatar" style="background:#111827;"></span>可以用原生 HTML5 拖拽 API 或 react-dnd...</div>
+          <div class="mock-inputbar" style="border-radius: 16px;">问点别的...<span class="send-dot">↑</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 极简纯净风</h3>
+      <p>纯白底色 + 细线分隔，无背景色块对比，留白更多更克制。思考链做成虚线盒默认收起。</p>
+    </div>
+  </div>
+
+  <!-- C: 双栏紧凑风 -->
+  <div class="card layout-card" data-choice="compact" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 14px;">
+      <div class="layout-mock">
+        <div class="mock-side" style="width: 24%;">
+          <div class="mock-newbtn" style="background:#1f2937;">+ 新</div>
+          <div class="mock-item active" style="font-size: 9.5px;">关于 React 的问题</div>
+          <div class="mock-item" style="font-size: 9.5px;">今天吃什么</div>
+          <div class="mock-item" style="font-size: 9.5px;">代码 review</div>
+        </div>
+        <div class="mock-main" style="padding: 10px 12px;">
+          <div class="mock-bubble-user" style="font-size: 10px;">怎么用 React 实现拖拽？</div>
+          <div class="mock-thinking" style="font-size: 9.5px; padding: 4px 8px;">思考中...</div>
+          <div class="mock-bubble-ai" style="font-size: 10px;"><span class="mock-aiavatar" style="width:14px;height:14px;"></span>可以用原生 HTML5 拖拽 API 或 react-dnd...</div>
+          <div class="mock-inputbar" style="font-size: 9.5px; padding: 6px 10px;">问点别的...<span class="send-dot" style="width:14px;height:14px;">↑</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 双栏紧凑风</h3>
+      <p>侧栏更窄，整体字体偏小一档，一屏容纳更多内容。适合小屏幕/老机器性能优先。</p>
+    </div>
+  </div>
+
+</div>
+
+<p style="margin-top: 18px; font-size: 12px; color: #6b7280;">注：以上为布局示意，最终配色、字体、气泡圆角等细节可在确定方向后继续微调。</p>

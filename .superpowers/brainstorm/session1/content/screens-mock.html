@@ -1,0 +1,197 @@
+<h2>关键页面设计</h2>
+<p class="subtitle">极简 B 风格延续，白色基底 + 细线分隔，无 emoji 图标用 SVGs 替代</p>
+
+<style>
+  .page-mock {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+    height: 360px; display: flex; flex-direction: column;
+  }
+  .page-mock .header {
+    padding: 10px 16px; border-bottom: 1px solid #f3f4f6;
+    font-size: 11px; color: #6b7280;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .page-mock .header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .page-mock .body {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .page-mock .sidebar {
+    width: 240px; border-right: 1px solid #f3f4f6;
+    display: flex; flex-direction: column; padding: 10px;
+    background: #fafafa; font-size: 11px;
+  }
+  .page-mock .chat-area {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 14px 18px; overflow-y: auto;
+    background: #fff;
+  }
+  .name { font-weight: 600; }
+  .mock-input {
+    border: 1px solid #e5e7eb; border-radius: 14px;
+    padding: 10px 14px; font-size: 11px; color: #9ca3af;
+    background: #fff; display: flex; align-items: center;
+    margin-top: auto;
+  }
+  .mock-input svg { margin-left: auto; opacity: 0.4; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 8px; font-size: 11px;
+    cursor: default; border: 1px solid #e5e7eb;
+    background: #fff; color: #374151;
+  }
+  .btn-dark { background: #111827; color: #fff; border-color: #111827; }
+  .chat-row {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-bottom: 12px; font-size: 11px;
+    line-height: 1.6;
+  }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 10px;
+  }
+  .avatar.ai { background: #111827; color: #fff; }
+  .avatar.user { background: #e5e7eb; color: #374151; }
+  .thinking-block {
+    border: 1px dashed #d1d5db; border-radius: 8px;
+    padding: 6px 10px; font-size: 10px; color: #6b7280;
+    margin-bottom: 8px; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    background: #fafafa;
+  }
+  .thinking-expanded {
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 8px 10px; font-size: 10px; color: #6b7280;
+    margin-bottom: 8px; background: #fafafa;
+    line-height: 1.5;
+  }
+  .model-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 9px; background: #f3f4f6; color: #6b7280;
+    margin-bottom: 4px;
+  }
+  .admin-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+  .admin-table th { text-align: left; padding: 6px 8px; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6; }
+  .admin-table td { padding: 6px 8px; border-bottom: 1px solid #f9fafb; }
+  .toggle {
+    width: 32px; height: 18px; border-radius: 10px;
+    display: inline-block; position: relative;
+  }
+  .toggle.on { background: #10a37f; }
+  .toggle.off { background: #d1d5db; }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; background: #fff; border-radius: 50%;
+    top: 2px;
+  }
+  .toggle.on::after { right: 2px; }
+  .toggle.off::after { left: 2px; }
+</style>
+
+<!-- 聊天界面 -->
+<div class="page-mock">
+  <div class="header">
+    <span><span class="dot" style="background:#f87171;"></span><span class="dot" style="background:#fbbf24;"></span><span class="dot" style="background:#34d399;"></span></span>
+    <span class="name">LiteChat</span>
+    <span style="margin-left: auto; display: flex; gap: 6px;">
+      <span class="btn">浅色/深色</span>
+    </span>
+  </div>
+  <div class="body">
+    <div class="sidebar">
+      <div class="btn btn-dark" style="justify-content:center;margin-bottom:12px;">新对话</div>
+      <div style="flex:1;">
+        <div style="padding:6px 8px;border-radius:6px;background:#e5e7eb;margin-bottom:4px;">关于 React 的问题</div>
+        <div style="padding:6px 8px;border-radius:6px;color:#6b7280;margin-bottom:4px;">晚饭吃什么建议</div>
+        <div style="padding:6px 8px;border-radius:6px;color:#6b7280;margin-bottom:4px;">写一个排序函数</div>
+      </div>
+      <div style="border-top:1px solid #f3f4f6;padding-top:10px;">
+        <div style="color:#374151;display:flex;align-items:center;gap:6px;">
+          <div class="avatar user" style="width:20px;height:20px;font-size:9px;">U</div>
+          <span style="font-size:10px;">user@email.com</span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-area">
+      <div class="model-badge">GPT-4o &middot; gpt-4o-2024-05-13</div>
+      <div class="chat-row">
+        <div class="avatar user">U</div>
+        <div>怎么用 React 实现拖拽排序？</div>
+      </div>
+      <div class="chat-row">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <div class="thinking-block">
+            思考过程 &middot; 用时 3s &middot; 点击展开
+          </div>
+          <div>
+            实现 React 拖拽排序有几种常见方案：使用原生 HTML5 Drag and Drop API、使用 react-dnd 库、或者使用 dnd-kit 等更高级的抽象。
+          </div>
+        </div>
+      </div>
+      <div class="chat-row">
+        <div class="avatar user">U</div>
+        <div>展开思考过程看看</div>
+      </div>
+      <div class="chat-row">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <div class="thinking-expanded">
+            分析用户需求：用户想了解 React 中实现拖拽排序的方案<br/>
+            评估可行性：HTML5 DnD 适合简单场景；react-dnd 成熟但 API 复杂；dnd-kit 较新但易用<br/>
+            决定推荐三种方案并给出代码示例
+          </div>
+          <div>
+            好的，这是思考过程的展开内容。现在给你具体代码示例...
+          </div>
+        </div>
+      </div>
+      <div class="mock-input">
+        继续提问...
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L14 7L8 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 管理面板 -->
+<p style="font-size: 12px; color: #374151; margin-top: 20px;"><strong>管理面板</strong> &mdash; 配置 API 提供商和模型可见性</p>
+
+<div class="page-mock" style="height: 280px;">
+  <div class="header">
+    <span class="name">管理面板</span>
+    <span style="margin-left: auto; font-size: 10px; color: #10a37f;">&#9632; 已连接</span>
+  </div>
+  <div class="body" style="flex-direction: column; padding: 16px 20px; font-size: 11px;">
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:flex-end;">
+      <div style="flex:1;">
+        <label style="color:#6b7280;font-size:10px;">Base URL</label>
+        <input style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;margin-top:2px;box-sizing:border-box;" value="https://api.openai.com/v1">
+      </div>
+      <div style="flex:1;">
+        <label style="color:#6b7280;font-size:10px;">API Key</label>
+        <input style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;margin-top:2px;box-sizing:border-box;" value="sk-****" type="password">
+      </div>
+      <div class="btn btn-dark" style="height: fit-content;">获取模型</div>
+    </div>
+    <div style="overflow: auto; flex:1;">
+      <table class="admin-table">
+        <tr><th>模型名称</th><th>模型 ID</th><th>可见性</th><th>公开/私密</th></tr>
+        <tr><td>GPT-4o</td><td>gpt-4o</td><td style="color:#10a37f;">公开</td><td><span class="toggle on"></span></td></tr>
+        <tr><td>GPT-4o-mini</td><td>gpt-4o-mini</td><td style="color:#10a37f;">公开</td><td><span class="toggle on"></span></td></tr>
+        <tr><td>o3-mini</td><td>o3-mini</td><td style="color:#f59e0b;">私密</td><td><span class="toggle off"></span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 18px; font-size: 12px; color: #6b7280; border-top: 1px solid #f3f4f6; padding-top: 14px;">
+  以上为聊天界面 &amp; 管理面板线框图。确认布局方向后可细化配色、字体、圆角等视觉细节。
+</div>

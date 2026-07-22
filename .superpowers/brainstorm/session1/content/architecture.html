@@ -1,0 +1,29 @@
+<h2>系统架构设计</h2>
+<p class="subtitle">轻量化方案：Node.js 单服务进程 + SQLite + 零构建前端</p>
+
+<div class="section">
+  <h3>架构概览</h3>
+  <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin-top:12px;font-family:monospace;font-size:12px;line-height:1.8;color:#374151;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      <span style="background:#111827;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;">Browser</span>
+      <span style="color:#9ca3af;">&#8594;</span>
+      <span style="background:#10a37f;color:#fff;padding:3px 10px;border-radius:6px;font-size:11px;">server.js</span>
+      <span style="color:#9ca3af;">&#8594;</span>
+      <span style="background:#fbbf24;color:#111827;padding:3px 10px;border-radius:6px;font-size:11px;">chat.db</span>
+    </div>
+    <div style="border-left:2px solid #e5e7eb;margin-left:6px;padding-left:16px;">
+      <b>server.js</b> (~600行)<br/>
+      &#9500; HTTP 路由（登录/注册/聊天/管理后台）<br/>
+      &#9500; SSE 流式转发（代理 OpenAI 兼容 API）<br/>
+      &#9500; Session/JWT 认证<br/>
+      &#9500; 静态文件服务（无构建步骤）<br/>
+      <br/>
+      <b>public/</b>（纯 HTML/CSS/JS，零依赖）<br/>
+      &#9500; index.html — 聊天界面<br/>
+      &#9500; admin.html — 管理面板<br/>
+      &#9500; login.html — 登录/注册<br/>
+      &#9500; style.css — 全局样式<br/>
+      &#9500; app.js — 前端聊天逻辑<br/>
+    </div>
+  </div>
+</div>

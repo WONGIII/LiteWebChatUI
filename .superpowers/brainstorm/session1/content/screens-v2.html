@@ -1,0 +1,300 @@
+<h2>关键页面设计 v2</h2>
+<p class="subtitle">弹幕右侧 · 无用户头像 · 模型 Logo 上传 · Lucide 开源图标</p>
+
+<style>
+  .page-mock {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+    height: 380px; display: flex; flex-direction: column;
+  }
+  .page-mock .header {
+    padding: 10px 16px; border-bottom: 1px solid #f3f4f6;
+    font-size: 11px; color: #6b7280;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .page-mock .header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+  }
+  .page-mock .body {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .page-mock .sidebar {
+    width: 240px; border-right: 1px solid #f3f4f6;
+    display: flex; flex-direction: column; padding: 10px;
+    background: #fafafa; font-size: 11px;
+  }
+  .page-mock .chat-area {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 14px 18px; overflow-y: auto;
+    background: #fff;
+  }
+  .name { font-weight: 600; }
+  .mock-input {
+    border: 1px solid #e5e7eb; border-radius: 14px;
+    padding: 10px 14px; font-size: 11px; color: #9ca3af;
+    background: #fff; display: flex; align-items: center;
+    margin-top: auto;
+  }
+  .mock-input svg { margin-left: auto; opacity: 0.3; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 8px; font-size: 11px;
+    cursor: default; border: 1px solid #e5e7eb;
+    background: #fff; color: #374151;
+  }
+  .btn-dark { background: #111827; color: #fff; border-color: #111827; }
+  .chat-row {
+    display: flex; margin-bottom: 12px; font-size: 11px;
+    line-height: 1.6;
+  }
+  .chat-row.user { justify-content: flex-end; }
+  .chat-row.ai { justify-content: flex-start; align-items: flex-start; gap: 8px; }
+  .bubble-user {
+    background: #f3f4f6; color: #111827;
+    padding: 8px 14px; border-radius: 16px;
+    max-width: 70%; font-size: 11px;
+  }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 10px;
+  }
+  .avatar.ai { background: #111827; color: #fff; }
+  .thinking-block {
+    border: 1px dashed #d1d5db; border-radius: 8px;
+    padding: 6px 10px; font-size: 10px; color: #6b7280;
+    margin-bottom: 8px; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    background: #fafafa;
+  }
+  .thinking-block svg { opacity: 0.4; transition: transform .2s; }
+  .thinking-expanded {
+    border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 8px 10px; font-size: 10px; color: #6b7280;
+    margin-bottom: 8px; background: #fafafa;
+    line-height: 1.5;
+  }
+  .model-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 10px 2px 6px; border-radius: 12px;
+    font-size: 9px; background: #f3f4f6; color: #6b7280;
+    margin-bottom: 6px; align-self: flex-start;
+  }
+  .model-logo-sm {
+    width: 14px; height: 14px; border-radius: 3px; background: #10a37f;
+  }
+  .admin-table { width: 100%; font-size: 11px; border-collapse: collapse; }
+  .admin-table th { text-align: left; padding: 6px 8px; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6; font-size: 10px; }
+  .admin-table td { padding: 8px 6px; border-bottom: 1px solid #f9fafb; vertical-align: middle; }
+  .toggle {
+    width: 32px; height: 18px; border-radius: 10px;
+    display: inline-block; position: relative;
+  }
+  .toggle.on { background: #10a37f; }
+  .toggle.off { background: #d1d5db; }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 14px; height: 14px; background: #fff; border-radius: 50%;
+    top: 2px;
+  }
+  .toggle.on::after { right: 2px; }
+  .toggle.off::after { left: 2px; }
+  .logo-upload {
+    width: 28px; height: 28px; border-radius: 6px;
+    border: 1px dashed #d1d5db; display: inline-flex;
+    align-items: center; justify-content: center;
+    background: #fafafa; cursor: pointer; vertical-align: middle;
+  }
+  .logo-upload svg { opacity: 0.3; }
+  .logo-cell { display: flex; align-items: center; gap: 6px; }
+  .icon-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .icon-label { font-size: 10px; color: #6b7280; }
+</style>
+
+<!-- 聊天界面 -->
+<div class="page-mock">
+  <div class="header">
+    <span><span class="dot" style="background:#f87171;"></span><span class="dot" style="background:#fbbf24;"></span><span class="dot" style="background:#34d399;"></span></span>
+    <span class="name">LiteChat</span>
+    <span style="margin-left:auto;display:flex;gap:6px;">
+      <span class="btn" style="gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        浅色
+      </span>
+    </span>
+  </div>
+  <div class="body">
+    <div class="sidebar">
+      <div class="btn btn-dark" style="justify-content:center;margin-bottom:12px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        新对话
+      </div>
+      <div style="flex:1;">
+        <div style="padding:7px 8px;border-radius:6px;background:#e5e7eb;margin-bottom:2px;display:flex;align-items:center;gap:5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          关于 React 的问题
+        </div>
+        <div style="padding:7px 8px;border-radius:6px;color:#6b7280;margin-bottom:2px;">晚饭吃什么建议</div>
+        <div style="padding:7px 8px;border-radius:6px;color:#6b7280;margin-bottom:2px;">写一个排序函数</div>
+      </div>
+      <div style="border-top:1px solid #f3f4f6;padding-top:10px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#374151;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          user@email.com
+        </div>
+      </div>
+    </div>
+    <div class="chat-area">
+      <div class="model-badge">
+        <div class="model-logo-sm"></div>
+        <span>GPT-4o</span>
+      </div>
+
+      <!-- 用户消息：右对齐，无头像 -->
+      <div class="chat-row user">
+        <div class="bubble-user">怎么用 React 实现拖拽排序？</div>
+      </div>
+
+      <!-- AI 消息：左对齐，有头像 -->
+      <div class="chat-row ai">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <div class="thinking-block">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            思考过程 &middot; 用时 3s
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: auto;transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg>
+          </div>
+          <div style="font-size:11px;line-height:1.6;color:#374151;">
+            实现 React 拖拽排序有几种常见方案：使用原生 HTML5 Drag and Drop API、使用 react-dnd 库、或者使用 dnd-kit 等更高级的抽象。
+          </div>
+        </div>
+      </div>
+
+      <!-- 用户消息 -->
+      <div class="chat-row user">
+        <div class="bubble-user">展开思考过程看看</div>
+      </div>
+
+      <!-- AI 消息：思考展开 -->
+      <div class="chat-row ai">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <div class="thinking-expanded">
+            分析用户需求：用户想了解 React 中实现拖拽排序的方案<br/>
+            评估可行性：HTML5 DnD 适合简单场景；react-dnd 成熟但 API 复杂；dnd-kit 较新但易用<br/>
+            决定推荐三种方案并给出代码示例
+          </div>
+          <div style="font-size:11px;line-height:1.6;color:#374151;">
+            好的，这是思考过程的展开内容。
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-input" style="display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        继续提问...
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 管理面板 -->
+<p style="font-size:12px;color:#374151;margin-top:20px;"><strong>管理面板</strong> &mdash; 带模型 Logo 上传 &amp; 公开/私密切换</p>
+
+<div class="page-mock" style="height: 320px;">
+  <div class="header">
+    <span class="name">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      管理面板
+    </span>
+    <span style="margin-left:auto;font-size:10px;color:#10a37f;">
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="#10a37f" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+      已连接
+    </span>
+  </div>
+  <div class="body" style="flex-direction:column;padding:16px 20px;font-size:11px;">
+    <div style="display:flex;gap:12px;margin-bottom:14px;align-items:flex-end;">
+      <div style="flex:1;">
+        <label style="color:#6b7280;font-size:10px;display:flex;align-items:center;gap:3px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Base URL
+        </label>
+        <input style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;margin-top:2px;box-sizing:border-box;" value="https://api.openai.com/v1">
+      </div>
+      <div style="flex:1;">
+        <label style="color:#6b7280;font-size:10px;display:flex;align-items:center;gap:3px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          API Key
+        </label>
+        <input style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:8px;font-size:11px;margin-top:2px;box-sizing:border-box;" value="sk-****" type="password">
+      </div>
+      <div class="btn btn-dark" style="height:fit-content;white-space:nowrap;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        获取模型列表
+      </div>
+    </div>
+    <div style="overflow:auto;flex:1;">
+      <table class="admin-table">
+        <tr>
+          <th>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            Logo
+          </th>
+          <th>模型名称</th>
+          <th>模型 ID</th>
+          <th>可见性</th>
+        </tr>
+        <tr>
+          <td>
+            <div class="logo-cell">
+              <div class="logo-upload" style="background:#10a37f;border:none;">
+                <span style="font-size:10px;color:#fff;font-weight:600;">G</span>
+              </div>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </td>
+          <td>GPT-4o</td>
+          <td style="color:#6b7280;font-family:monospace;font-size:10px;">gpt-4o</td>
+          <td><span class="toggle on"></span><span style="font-size:10px;color:#10a37f;margin-left:5px;">公开</span></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="logo-cell">
+              <div class="logo-upload" style="background:linear-gradient(135deg,#667eea,#764ba2);border:none;">
+                <span style="font-size:9px;color:#fff;font-weight:600;">Gm</span>
+              </div>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+          </td>
+          <td>GPT-4o-mini</td>
+          <td style="color:#6b7280;font-family:monospace;font-size:10px;">gpt-4o-mini</td>
+          <td><span class="toggle on"></span><span style="font-size:10px;color:#10a37f;margin-left:5px;">公开</span></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="logo-cell">
+              <div class="logo-upload">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              </div>
+            </div>
+          </td>
+          <td>Claude 3.5 Sonnet</td>
+          <td style="color:#6b7280;font-family:monospace;font-size:10px;">claude-3-5-sonnet</td>
+          <td><span class="toggle off"></span><span style="font-size:10px;color:#f59e0b;margin-left:5px;">私密</span></td>
+        </tr>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:#9ca3af;display:flex;align-items:center;gap:4px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      点击上传按钮可替换模型 Logo（支持 PNG/JPG/SVG），公开模型对所有用户可见，私密仅管理员可见
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;padding:12px 16px;background:#fafafa;border:1px solid #f3f4f6;border-radius:8px;font-size:10px;color:#6b7280;">
+  <strong>图标库:</strong> <a href="https://lucide.dev" style="color:#374151;">Lucide Icons</a> (ISC License, 完全开源可商用) &mdash; 轻量 SVG 图标，体积小，主题可自适应颜色
+</div>

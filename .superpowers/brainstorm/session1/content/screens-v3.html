@@ -1,0 +1,310 @@
+<h2>关键页面设计 v3</h2>
+<p class="subtitle">思考链改为左侧竖线 + 实时拉长，不用气泡包裹</p>
+
+<style>
+  .page-mock {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+    height: 400px; display: flex; flex-direction: column;
+  }
+  .page-mock .header {
+    padding: 10px 16px; border-bottom: 1px solid #f3f4f6;
+    font-size: 11px; color: #6b7280;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .page-mock .body {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .page-mock .sidebar {
+    width: 240px; border-right: 1px solid #f3f4f6;
+    display: flex; flex-direction: column; padding: 10px;
+    background: #fafafa; font-size: 11px;
+  }
+  .page-mock .chat-area {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 14px 18px; overflow-y: auto;
+    background: #fff;
+  }
+  .name { font-weight: 600; }
+  .mock-input {
+    border: 1px solid #e5e7eb; border-radius: 14px;
+    padding: 10px 14px; font-size: 11px; color: #9ca3af;
+    background: #fff; display: flex; align-items: center;
+    margin-top: auto;
+  }
+  .mock-input svg { margin-left: auto; opacity: 0.3; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 8px; font-size: 11px;
+    cursor: default; border: 1px solid #e5e7eb;
+    background: #fff; color: #374151;
+  }
+  .btn-dark { background: #111827; color: #fff; border-color: #111827; }
+
+  .chat-row {
+    display: flex; margin-bottom: 10px; font-size: 11px;
+    line-height: 1.6;
+  }
+  .chat-row.user { justify-content: flex-end; }
+  .chat-row.ai { justify-content: flex-start; align-items: flex-start; gap: 8px; }
+  .bubble-user {
+    background: #f3f4f6; color: #111827;
+    padding: 8px 14px; border-radius: 16px;
+    max-width: 70%; font-size: 11px;
+  }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 10px; margin-top: 1px;
+  }
+  .avatar.ai { background: #111827; color: #fff; }
+
+  /* 思考链 - 左侧竖线版本 */
+  .thinking-line-collapsed {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px; cursor: pointer;
+    font-size: 10px; color: #6b7280;
+    padding: 2px 0;
+  }
+  .thinking-line-collapsed .think-bar {
+    width: 2px; height: 20px; background: #d1d5db;
+    border-radius: 1px; flex-shrink: 0;
+    transition: background .2s;
+  }
+  .thinking-line-collapsed:hover .think-bar {
+    background: #9ca3af;
+  }
+
+  .thinking-expanded {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .thinking-expanded .think-bar {
+    width: 2px; background: linear-gradient(180deg, #a78bfa, #7c3aed);
+    border-radius: 1px; flex-shrink: 0;
+    min-height: 100%;
+    animation: growBar 1s ease-out;
+  }
+  @keyframes growBar {
+    from { opacity: 0; transform: scaleY(0); transform-origin: top; }
+    to { opacity: 1; transform: scaleY(1); }
+  }
+  .thinking-expanded .think-content {
+    font-size: 10px; color: #6b7280; line-height: 1.6;
+    padding: 2px 0;
+  }
+  .think-header-expanded {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; color: #7c3aed; margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .think-header-expanded svg {
+    transition: transform .2s;
+  }
+
+  /* 流式输出中 */
+  .thinking-streaming {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .thinking-streaming .think-bar {
+    width: 2px; background: linear-gradient(180deg, #a78bfa 60%, #d1d5db);
+    border-radius: 1px; flex-shrink: 0;
+    min-height: 100%;
+    animation: pulseBar 1.2s ease-in-out infinite;
+  }
+  @keyframes pulseBar {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+  .thinking-streaming .think-content {
+    font-size: 10px; color: #6b7280; line-height: 1.6;
+    padding: 2px 0;
+  }
+  .streaming-dot {
+    display: inline-block; width: 4px; height: 4px;
+    background: #7c3aed; border-radius: 50%;
+    margin-left: 2px; animation: blink 0.9s infinite;
+  }
+  .streaming-dot:nth-child(2) { animation-delay: 0.2s; }
+  .streaming-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink {
+    0%, 60%, 100% { opacity: 0; }
+    30% { opacity: 1; }
+  }
+
+  .model-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 10px 2px 6px; border-radius: 12px;
+    font-size: 9px; background: #f3f4f6; color: #6b7280;
+    margin-bottom: 6px; align-self: flex-start;
+  }
+  .model-logo-sm {
+    width: 14px; height: 14px; border-radius: 3px; background: #10a37f;
+  }
+</style>
+
+<!-- 聊天界面 -->
+<div class="page-mock">
+  <div class="header">
+    <span><span class="dot" style="background:#f87171;"></span><span class="dot" style="background:#fbbf24;"></span><span class="dot" style="background:#34d399;"></span></span>
+    <span class="name">LiteChat</span>
+    <span style="margin-left:auto;display:flex;gap:6px;">
+      <span class="btn" style="gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        浅色
+      </span>
+    </span>
+  </div>
+  <div class="body">
+    <div class="sidebar">
+      <div class="btn btn-dark" style="justify-content:center;margin-bottom:12px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        新对话
+      </div>
+      <div style="flex:1;">
+        <div style="padding:7px 8px;border-radius:6px;background:#e5e7eb;margin-bottom:2px;display:flex;align-items:center;gap:5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          关于 React 的问题
+        </div>
+        <div style="padding:7px 8px;border-radius:6px;color:#6b7280;margin-bottom:2px;">晚饭吃什么建议</div>
+        <div style="padding:7px 8px;border-radius:6px;color:#6b7280;margin-bottom:2px;">写一个排序函数</div>
+      </div>
+      <div style="border-top:1px solid #f3f4f6;padding-top:10px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:#374151;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          user@email.com
+        </div>
+      </div>
+    </div>
+    <div class="chat-area">
+
+      <!-- 用户消息: 右对齐，无头像 -->
+      <div class="chat-row user">
+        <div class="bubble-user">怎么用 React 实现拖拽排序？</div>
+      </div>
+
+      <!-- AI 消息 #1: 思考已折叠 -->
+      <div class="chat-row ai">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <div class="thinking-line-collapsed">
+            <div class="think-bar"></div>
+            <span>已深度思考 · 用时 3s</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg>
+          </div>
+          <div style="font-size:11px;line-height:1.6;color:#374151;">
+            实现 React 拖拽排序有几种常见方案：使用原生 HTML5 Drag and Drop API、使用 react-dnd 库...
+          </div>
+        </div>
+      </div>
+
+      <!-- 用户消息 -->
+      <div class="chat-row user">
+        <div class="bubble-user">展开思考过程看看</div>
+      </div>
+
+      <!-- AI 消息 #2: 思考已展开 + 垂直线 -->
+      <div class="chat-row ai">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <!-- 思考展开 -->
+          <div class="thinking-expanded">
+            <div class="think-bar" style="height:auto;"></div>
+            <div style="flex:1;">
+              <div class="think-header-expanded" onclick="">
+                <span>已深度思考 · 用时 3s</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>
+              </div>
+              <div class="think-content">
+                分析用户需求：用户想了解 React 中实现拖拽排序的方案<br/>
+                评估可行性：HTML5 DnD 适合简单场景；react-dnd 成熟但 API 复杂；dnd-kit 较新但易用<br/>
+                决定推荐三种方案并给出相应代码示例
+              </div>
+            </div>
+          </div>
+          <div style="font-size:11px;line-height:1.6;color:#374151;">
+            好的，这是更详细的代码示例...
+          </div>
+        </div>
+      </div>
+
+      <!-- 用户消息 -->
+      <div class="chat-row user">
+        <div class="bubble-user">还有别的推荐吗？</div>
+      </div>
+
+      <!-- AI 消息 #3: 思考在流式输出中 -->
+      <div class="chat-row ai">
+        <div class="avatar ai">AI</div>
+        <div style="flex:1;">
+          <div class="thinking-streaming">
+            <div class="think-bar"></div>
+            <div style="flex:1;">
+              <div style="font-size:10px;color:#7c3aed;margin-bottom:3px;">
+                正在思考
+                <span class="streaming-dot"></span>
+                <span class="streaming-dot"></span>
+                <span class="streaming-dot"></span>
+              </div>
+              <div class="think-content">
+                除了前面提到的三种方案，还可以考虑 @dnd-kit 作为现代化替代，它具有更好的 A11y 支持和更简单的 API 设计...
+              </div>
+            </div>
+          </div>
+          <div style="font-size:11px;line-height:1.6;color:#9ca3af;font-style:italic;">
+            AI 回复进行中...
+          </div>
+        </div>
+      </div>
+
+      <div class="mock-input" style="display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        继续提问...
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:18px;padding:14px 16px;background:#fafafa;border:1px solid #f3f4f6;border-radius:8px;font-size:11px;color:#374151;line-height:1.6;">
+  <strong>思考链三种状态：</strong>
+  <div style="display:flex;gap:24px;margin-top:8px;align-items:flex-start;">
+
+    <!-- 折叠状态示意 -->
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">1. 已完成/折叠</div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:#6b7280;">
+        <div style="width:2px;height:18px;background:#d1d5db;border-radius:1px;"></div>
+        <span>已深度思考 · 用时 3s</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg>
+      </div>
+    </div>
+
+    <!-- 展开状态示意 -->
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">2. 已展开</div>
+      <div style="display:flex;gap:8px;">
+        <div style="width:2px;background:linear-gradient(180deg,#a78bfa,#7c3aed);border-radius:1px;min-height:40px;"></div>
+        <div style="font-size:9px;color:#6b7280;line-height:1.5;">
+          分析需求...<br/>评估方案...<br/>得出结论...
+        </div>
+      </div>
+    </div>
+
+    <!-- 流式状态示意 -->
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#6b7280;margin-bottom:6px;">3. 流式输出中</div>
+      <div style="display:flex;gap:8px;">
+        <div style="width:2px;background:linear-gradient(180deg,#a78bfa 50%,#d1d5db);border-radius:1px;min-height:35px;animation:pulseBar 1.2s ease-in-out infinite;"></div>
+        <div style="font-size:9px;color:#6b7280;line-height:1.5;">
+          正在思考<span class="streaming-dot"></span><span class="streaming-dot"></span><span class="streaming-dot"></span><br/>
+          逐步输出内容...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:16px;font-size:11px;color:#6b7280;border-top:1px solid #f3f4f6;padding-top:12px;">
+  设计确认点：思考链不再使用气泡，改为 <strong>左侧 2px 竖线</strong>（折叠时灰色，展开时紫色渐变），流式输出时线实时向下延伸。回头还可以在管理面板和整体配色的页面继续细化。
+</div>
