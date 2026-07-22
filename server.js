@@ -3,8 +3,8 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
-import Database from 'better-sqlite3';
-import bcrypt from 'bcrypt';
+import initSqlJs from 'sql.js';
+import bcrypt from 'bcryptjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3000');
@@ -14,85 +14,60 @@ const PUBLIC_DIR = join(__dirname, 'public');
 
 if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
 
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    is_admin INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE TABLE IF NOT EXISTS providers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL DEFAULT '',
-    base_url TEXT NOT NULL,
-    api_key TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE TABLE IF NOT EXISTS models (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    provider_id INTEGER REFERENCES providers(id),
-    model_id TEXT NOT NULL,
-    display_name TEXT,
-    logo_url TEXT,
-    visible INTEGER DEFAULT 1,
-    context_window INTEGER,
-    max_tokens INTEGER,
-    supports_reasoning INTEGER DEFAULT 0,
-    supports_vision INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE TABLE IF NOT EXISTS conversations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER REFERENCES users(id),
-    title TEXT DEFAULT '新对话',
-    model_id TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC);
-  CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
-    role TEXT NOT NULL,
-    model_id TEXT,
-    content TEXT NOT NULL,
-    reasoning TEXT,
-    tokens_used INTEGER,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at);
-`);
-
-// Migration: add model_id to messages if missing
-try {
-  db.prepare('SELECT model_id FROM messages LIMIT 0').all();
-} catch (e) {
-  db.exec('ALTER TABLE messages ADD COLUMN model_id TEXT');
+// --- sql.js helpers ---
+const SQL = await initSqlJs();
+let db;
+if (existsSync(DB_PATH)) {
+  const buf = readFileSync(DB_PATH);
+  db = new SQL.Database(buf);
+} else {
+  db = new SQL.Database();
 }
 
-// Migration: add approved to users if missing
-try {
-  db.prepare('SELECT approved FROM users LIMIT 0').all();
-} catch (e) {
-  db.exec('ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 1');
-  db.exec(`UPDATE users SET approved=1 WHERE is_admin=1`);
-  db.exec(`UPDATE users SET approved=0 WHERE is_admin=0 AND approved IS NULL`);
+function saveDb() { writeFileSync(DB_PATH, Buffer.from(db.export())); }
+
+function run(sql, params = []) {
+  db.run(sql, params);
+  saveDb();
 }
 
-// Migration: add is_custom to models for manually-added models
-try {
-  db.prepare('SELECT is_custom FROM models LIMIT 0').all();
-} catch (e) {
-  db.exec('ALTER TABLE models ADD COLUMN is_custom INTEGER DEFAULT 0');
+function exec(sql) {
+  const r = db.exec(sql);
+  saveDb();
+  return r;
 }
 
-const adminCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE is_admin=1').get();
-let needsSetup = adminCount.c === 0;
+function queryAll(sql, params = []) {
+  let stmt; try { stmt = db.prepare(sql); stmt.bind(params); const rows = []; while (stmt.step()) rows.push(stmt.getAsObject()); stmt.free(); return rows; } catch(e) { if (stmt) stmt.free(); throw e; }
+}
+
+function queryOne(sql, params = []) {
+  const rows = queryAll(sql, params); return rows.length > 0 ? rows[0] : null;
+}
+
+function insert(sql, params = []) {
+  db.run(sql, params);
+  const r = db.exec("SELECT last_insert_rowid() as id");
+  saveDb();
+  return Number(r[0].values[0][0]);
+}
+
+// --- Schema ---
+exec(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, is_admin INTEGER DEFAULT 0, approved INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`);
+exec(`CREATE TABLE IF NOT EXISTS providers (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', base_url TEXT NOT NULL, api_key TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')))`);
+exec(`CREATE TABLE IF NOT EXISTS models (id INTEGER PRIMARY KEY AUTOINCREMENT, provider_id INTEGER REFERENCES providers(id), model_id TEXT NOT NULL, display_name TEXT, logo_url TEXT, visible INTEGER DEFAULT 1, context_window INTEGER, max_tokens INTEGER, supports_reasoning INTEGER DEFAULT 0, supports_vision INTEGER DEFAULT 0, is_custom INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`);
+exec(`CREATE TABLE IF NOT EXISTS conversations (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id), title TEXT DEFAULT '新对话', model_id TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`);
+exec(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`);
+exec(`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE, role TEXT NOT NULL, model_id TEXT, content TEXT NOT NULL, reasoning TEXT, tokens_used INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
+exec(`CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at)`);
+
+// Migrations
+try { queryOne("SELECT model_id FROM messages LIMIT 1"); } catch(e) { exec("ALTER TABLE messages ADD COLUMN model_id TEXT"); }
+try { queryOne("SELECT approved FROM users LIMIT 1"); } catch(e) { exec("ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 1"); exec("UPDATE users SET approved=1 WHERE is_admin=1"); exec("UPDATE users SET approved=0 WHERE is_admin=0"); }
+try { queryOne("SELECT is_custom FROM models LIMIT 1"); } catch(e) { exec("ALTER TABLE models ADD COLUMN is_custom INTEGER DEFAULT 0"); }
+
+const adminCount = queryOne("SELECT COUNT(*) as c FROM users WHERE is_admin=1");
+let needsSetup = (adminCount && adminCount.c === 0);
 
 const sessions = new Map();
 const SESSION_TTL = 24 * 60 * 60 * 1000;
@@ -140,7 +115,7 @@ function serveStatic(res, filePath, contentType) {
 function requireAdmin(req, res) {
   const s = getSession(req);
   if (!s) { json(res, { error: 'Unauthorized' }, 401); return null; }
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(s.userId);
+  const user = queryOne("SELECT * FROM users WHERE id=?", [s.userId]);
   if (!user || !user.is_admin) { json(res, { error: 'Forbidden' }, 403); return null; }
   return user;
 }
@@ -148,7 +123,7 @@ function requireAdmin(req, res) {
 function requireApproved(req, res) {
   const s = getSession(req);
   if (!s) { json(res, { error: 'Unauthorized' }, 401); return null; }
-  const user = db.prepare('SELECT * FROM users WHERE id=?').get(s.userId);
+  const user = queryOne("SELECT * FROM users WHERE id=?", [s.userId]);
   if (!user) { json(res, { error: 'Unauthorized' }, 401); return null; }
   if (!user.is_admin && !user.approved) { json(res, { error: '账号待审核，请等待管理员通过' }, 403); return null; }
   return user;
@@ -195,7 +170,6 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   const method = req.method;
 
-  // --- Static files ---
   if (method === 'GET' && (path.startsWith('/public/') || path === '/style.css')) {
     const filePath = path.startsWith('/public/') ? join(__dirname, path.slice(1)) : join(PUBLIC_DIR, path.slice(1));
     return serveStatic(res, filePath, getMimeType(filePath));
@@ -207,7 +181,6 @@ const server = createServer(async (req, res) => {
     return serveStatic(res, filePath, getMimeType(filePath));
   }
 
-  // --- Pages ---
   if (method === 'GET') {
     const pages = { '/': 'login.html', '/login': 'login.html', '/chat': 'index.html', '/admin': 'admin.html' };
     if (pages[path]) return serveStatic(res, join(PUBLIC_DIR, pages[path]), 'text/html');
@@ -219,28 +192,28 @@ const server = createServer(async (req, res) => {
   if (method === 'GET' && path === '/api/auth/me') {
     const s = getSession(req);
     if (!s) return json(res, { error: 'Unauthorized' }, 401);
-    const user = db.prepare('SELECT id, email, is_admin, approved FROM users WHERE id=?').get(s.userId);
+    const user = queryOne("SELECT id, email, is_admin, approved FROM users WHERE id=?", [s.userId]);
     return json(res, { user });
   }
 
   if (method === 'POST' && path === '/api/auth/register') {
     const { email, password } = await parseBody(req);
     if (!email || !password || password.length < 4) return json(res, { error: '邮箱和密码必填(最少4位)' }, 400);
-    const existing = db.prepare('SELECT id FROM users WHERE email=?').get(email);
+    const existing = queryOne("SELECT id FROM users WHERE email=?", [email]);
     if (existing) return json(res, { error: '邮箱已注册' }, 409);
-    const hash = await bcrypt.hash(password, 10);
+    const hash = bcrypt.hashSync(password, 10);
     const isAdmin = needsSetup ? 1 : 0;
-    const r = db.prepare('INSERT INTO users (email, password_hash, is_admin, approved) VALUES (?,?,?,?)').run(email, hash, isAdmin, isAdmin ? 1 : 0);
+    const id = insert("INSERT INTO users (email, password_hash, is_admin, approved) VALUES (?,?,?,?)", [email, hash, isAdmin, isAdmin ? 1 : 0]);
     if (isAdmin) needsSetup = false;
-    setSession(res, Number(r.lastInsertRowid));
-    return json(res, { user: { id: r.lastInsertRowid, email, is_admin: isAdmin } }, 201);
+    setSession(res, id);
+    return json(res, { user: { id, email, is_admin: isAdmin } }, 201);
   }
 
   if (method === 'POST' && path === '/api/auth/login') {
     const { email, password } = await parseBody(req);
-    const user = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+    const user = queryOne("SELECT * FROM users WHERE email=?", [email]);
     if (!user) return json(res, { error: '邮箱或密码错误' }, 401);
-    const ok = await bcrypt.compare(password, user.password_hash);
+    const ok = bcrypt.compareSync(password, user.password_hash);
     if (!ok) return json(res, { error: '邮箱或密码错误' }, 401);
     setSession(res, user.id);
     return json(res, { user: { id: user.id, email: user.email, is_admin: user.is_admin, approved: user.approved } });
@@ -258,7 +231,7 @@ const server = createServer(async (req, res) => {
   // --- Admin: Providers ---
   if (method === 'GET' && path === '/api/admin/providers') {
     const admin = requireAdmin(req, res); if (!admin) return;
-    const providers = db.prepare('SELECT * FROM providers').all();
+    const providers = queryAll("SELECT * FROM providers");
     return json(res, providers.map(p => ({ ...p, api_key: p.api_key.slice(0, 4) + '****' + p.api_key.slice(-4) })));
   }
 
@@ -266,22 +239,22 @@ const server = createServer(async (req, res) => {
     const admin = requireAdmin(req, res); if (!admin) return;
     const { name, base_url, api_key } = await parseBody(req);
     if (!base_url || !api_key) return json(res, { error: 'Base URL 和 API Key 必填' }, 400);
-    db.prepare('INSERT INTO providers (name, base_url, api_key) VALUES (?,?,?)').run(name || '', base_url, api_key);
+    run("INSERT INTO providers (name, base_url, api_key) VALUES (?,?,?)", [name || '', base_url, api_key]);
     return json(res, { ok: true });
   }
 
   if (method === 'DELETE' && path.startsWith('/api/admin/providers/')) {
     const admin = requireAdmin(req, res); if (!admin) return;
     const pid = parseInt(path.split('/').pop());
-    db.prepare('DELETE FROM providers WHERE id=?').run(pid);
-    db.prepare('DELETE FROM models WHERE provider_id=?').run(pid);
+    run("DELETE FROM providers WHERE id=?", [pid]);
+    run("DELETE FROM models WHERE provider_id=?", [pid]);
     return json(res, { ok: true });
   }
 
   if (method === 'POST' && path.match(/^\/api\/admin\/providers\/(\d+)\/fetch$/)) {
     const admin = requireAdmin(req, res); if (!admin) return;
     const pid = parseInt(path.split('/')[4]);
-    const provider = db.prepare('SELECT * FROM providers WHERE id=?').get(pid);
+    const provider = queryOne("SELECT * FROM providers WHERE id=?", [pid]);
     if (!provider) return json(res, { error: '提供商不存在' }, 404);
     try {
       const resp = await fetch(provider.base_url.replace(/\/$/, '') + '/models', {
@@ -289,14 +262,14 @@ const server = createServer(async (req, res) => {
       });
       if (!resp.ok) {
         const et = await resp.text().catch(() => '');
-        return json(res, { error: `API 返回 ${resp.status}: ${et.slice(0, 200)}` }, 502);
+        return json(res, { error: `API ${resp.status}: ${et.slice(0, 200)}` }, 502);
       }
       const data = await resp.json();
       const modelList = data.data || data;
       if (!Array.isArray(modelList)) return json(res, { error: 'API 返回格式不支持' }, 502);
-      const insert = db.prepare('INSERT OR IGNORE INTO models (provider_id, model_id, display_name, visible) VALUES (?,?,?,1)');
-      const tx = db.transaction((items) => { for (const m of items) insert.run(pid, m.id, m.id); });
-      tx(modelList);
+      for (const m of modelList) {
+        try { run("INSERT OR IGNORE INTO models (provider_id, model_id, display_name, visible) VALUES (?,?,?,1)", [pid, m.id, m.id]); } catch(e) {}
+      }
       return json(res, { ok: true, count: modelList.length });
     } catch (err) {
       return json(res, { error: `请求失败: ${err.message}` }, 502);
@@ -306,10 +279,7 @@ const server = createServer(async (req, res) => {
   // --- Admin: Models ---
   if (method === 'GET' && path === '/api/admin/models') {
     const admin = requireAdmin(req, res); if (!admin) return;
-    const models = db.prepare(`
-      SELECT m.*, p.name as provider_name FROM models m
-      LEFT JOIN providers p ON m.provider_id=p.id ORDER BY m.id
-    `).all();
+    const models = queryAll("SELECT m.*, p.name as provider_name FROM models m LEFT JOIN providers p ON m.provider_id=p.id ORDER BY m.id");
     return json(res, models);
   }
 
@@ -324,21 +294,20 @@ const server = createServer(async (req, res) => {
     if (body.supports_vision !== undefined) { updates.push('supports_vision=?'); params.push(body.supports_vision ? 1 : 0); }
     if (updates.length === 0) return json(res, { error: '无更新字段' }, 400);
     params.push(mid);
-    db.prepare(`UPDATE models SET ${updates.join(',')} WHERE id=?`).run(...params);
+    run(`UPDATE models SET ${updates.join(',')} WHERE id=?`, params);
     return json(res, { ok: true });
   }
 
   if (method === 'DELETE' && path.startsWith('/api/admin/models/')) {
     const admin = requireAdmin(req, res); if (!admin) return;
-    const mid = parseInt(path.split('/').pop());
-    db.prepare('DELETE FROM models WHERE id=?').run(mid);
+    run("DELETE FROM models WHERE id=?", [parseInt(path.split('/').pop())]);
     return json(res, { ok: true });
   }
 
   if (method === 'POST' && path.match(/^\/api\/admin\/models\/(\d+)\/logo$/)) {
     const admin = requireAdmin(req, res); if (!admin) return;
     const mid = parseInt(path.split('/')[4]);
-    const model = db.prepare('SELECT * FROM models WHERE id=?').get(mid);
+    const model = queryOne("SELECT * FROM models WHERE id=?", [mid]);
     if (!model) return json(res, { error: '模型不存在' }, 404);
     const buffers = [];
     for await (const chunk of req) buffers.push(chunk);
@@ -348,31 +317,26 @@ const server = createServer(async (req, res) => {
     const ext = result.filename.split('.').pop().toLowerCase();
     if (!['png', 'jpg', 'jpeg', 'svg', 'webp'].includes(ext)) return json(res, { error: '仅支持 PNG/JPG/SVG/WEBP' }, 400);
     const filename = `model_${mid}_${Date.now()}.${ext}`;
-    const filepath = join(UPLOADS_DIR, filename);
-    writeFileSync(filepath, result.data);
+    writeFileSync(join(UPLOADS_DIR, filename), result.data);
     const logoUrl = `/uploads/${filename}`;
-    db.prepare('UPDATE models SET logo_url=? WHERE id=?').run(logoUrl, mid);
+    run("UPDATE models SET logo_url=? WHERE id=?", [logoUrl, mid]);
     return json(res, { ok: true, logo_url: logoUrl });
   }
 
-  // --- Admin: Custom model ---
   if (method === 'POST' && path === '/api/admin/models/custom') {
     const admin = requireAdmin(req, res); if (!admin) return;
     const { provider_id, model_id, display_name, visible, supports_reasoning } = await parseBody(req);
     if (!provider_id || !model_id) return json(res, { error: '提供商和模型ID必填' }, 400);
-    const exists = db.prepare('SELECT id FROM models WHERE model_id=?').get(model_id);
+    const exists = queryOne("SELECT id FROM models WHERE model_id=?", [model_id]);
     if (exists) return json(res, { error: '模型ID已存在' }, 409);
-    db.prepare('INSERT INTO models (provider_id, model_id, display_name, visible, supports_reasoning, is_custom) VALUES (?,?,?,?,?,1)').run(
-      provider_id, model_id, display_name || model_id, visible !== undefined ? (visible ? 1 : 0) : 1, supports_reasoning ? 1 : 0
-    );
+    run("INSERT INTO models (provider_id, model_id, display_name, visible, supports_reasoning, is_custom) VALUES (?,?,?,?,?,1)", [provider_id, model_id, display_name || model_id, visible !== undefined ? (visible ? 1 : 0) : 1, supports_reasoning ? 1 : 0]);
     return json(res, { ok: true });
   }
 
-  // --- Admin: User management ---
+  // --- Admin: Users ---
   if (method === 'GET' && path === '/api/admin/users') {
     const admin = requireAdmin(req, res); if (!admin) return;
-    const users = db.prepare('SELECT id, email, is_admin, approved, created_at FROM users ORDER BY created_at DESC').all();
-    return json(res, users);
+    return json(res, queryAll("SELECT id, email, is_admin, approved, created_at FROM users ORDER BY created_at DESC"));
   }
 
   if (method === 'PATCH' && path.startsWith('/api/admin/users/')) {
@@ -380,23 +344,22 @@ const server = createServer(async (req, res) => {
     const uid = parseInt(path.split('/').pop());
     const body = await parseBody(req);
     if (body.approved !== undefined) {
-      db.prepare('UPDATE users SET approved=? WHERE id=? AND is_admin=0').run(body.approved ? 1 : 0, uid);
+      run("UPDATE users SET approved=? WHERE id=? AND is_admin=0", [body.approved ? 1 : 0, uid]);
     }
     return json(res, { ok: true });
   }
 
   if (method === 'DELETE' && path.startsWith('/api/admin/users/')) {
     const admin = requireAdmin(req, res); if (!admin) return;
-    const uid = parseInt(path.split('/').pop());
-    db.prepare('DELETE FROM users WHERE id=? AND is_admin=0').run(uid);
+    run("DELETE FROM users WHERE id=? AND is_admin=0", [parseInt(path.split('/').pop())]);
     return json(res, { ok: true });
   }
 
   // --- User: Models ---
   if (method === 'GET' && path === '/api/models') {
     const s = getSession(req);
-    const user = s ? db.prepare('SELECT * FROM users WHERE id=?').get(s.userId) : null;
-    const models = db.prepare('SELECT * FROM models ORDER BY id').all();
+    const user = s ? queryOne("SELECT * FROM users WHERE id=?", [s.userId]) : null;
+    const models = queryAll("SELECT * FROM models ORDER BY id");
     if (user && user.is_admin) return json(res, models);
     return json(res, models.filter(m => m.visible));
   }
@@ -404,37 +367,34 @@ const server = createServer(async (req, res) => {
   // --- User: Conversations ---
   if (method === 'GET' && path === '/api/conversations') {
     const user = requireApproved(req, res); if (!user) return;
-    const convs = db.prepare('SELECT * FROM conversations WHERE user_id=? ORDER BY updated_at DESC').all(user.id);
-    return json(res, convs);
+    return json(res, queryAll("SELECT * FROM conversations WHERE user_id=? ORDER BY updated_at DESC", [user.id]));
   }
 
   if (method === 'POST' && path === '/api/conversations') {
     const user = requireApproved(req, res); if (!user) return;
     const { model_id } = await parseBody(req);
-    const r = db.prepare('INSERT INTO conversations (user_id, model_id, title) VALUES (?,?,?)').run(user.id, model_id, '新对话');
-    return json(res, { id: Number(r.lastInsertRowid), user_id: user.id, model_id, title: '新对话' }, 201);
+    const id = insert("INSERT INTO conversations (user_id, model_id, title) VALUES (?,?,?)", [user.id, model_id, '新对话']);
+    return json(res, { id, user_id: user.id, model_id, title: '新对话' }, 201);
   }
 
   if (method === 'PATCH' && path.startsWith('/api/conversations/')) {
     const user = requireApproved(req, res); if (!user) return;
     const cid = parseInt(path.split('/').pop());
     const { title } = await parseBody(req);
-    db.prepare(`UPDATE conversations SET title=?, updated_at=datetime('now') WHERE id=? AND user_id=?`).run(title, cid, user.id);
+    run("UPDATE conversations SET title=?, updated_at=datetime('now') WHERE id=? AND user_id=?", [title, cid, user.id]);
     return json(res, { ok: true });
   }
 
   if (method === 'DELETE' && path.startsWith('/api/conversations/')) {
     const user = requireApproved(req, res); if (!user) return;
-    const cid = parseInt(path.split('/').pop());
-    db.prepare('DELETE FROM conversations WHERE id=? AND user_id=?').run(cid, user.id);
+    run("DELETE FROM conversations WHERE id=? AND user_id=?", [parseInt(path.split('/').pop()), user.id]);
     return json(res, { ok: true });
   }
 
   if (method === 'GET' && path.match(/^\/api\/conversations\/(\d+)\/messages$/)) {
     const user = requireApproved(req, res); if (!user) return;
     const cid = parseInt(path.split('/')[3]);
-    const messages = db.prepare(`SELECT m.*, md.logo_url as model_logo_url, md.display_name as model_display_name FROM messages m LEFT JOIN models md ON m.model_id=md.model_id WHERE m.conversation_id=? ORDER BY m.created_at`).all(cid);
-    return json(res, messages);
+    return json(res, queryAll("SELECT m.*, md.logo_url as model_logo_url, md.display_name as model_display_name FROM messages m LEFT JOIN models md ON m.model_id=md.model_id WHERE m.conversation_id=? ORDER BY m.created_at", [cid]));
   }
 
   // --- Chat SSE ---
@@ -443,21 +403,18 @@ const server = createServer(async (req, res) => {
     const body = await parseBody(req);
     const { conversation_id, model: modelId, messages } = body;
 
-    const model = db.prepare('SELECT m.*, p.base_url, p.api_key FROM models m JOIN providers p ON m.provider_id=p.id WHERE m.model_id=?').get(modelId);
+    const model = queryOne("SELECT m.*, p.base_url, p.api_key FROM models m JOIN providers p ON m.provider_id=p.id WHERE m.model_id=?", [modelId]);
     if (!model) return json(res, { error: '模型不存在' }, 404);
 
-    // Save user message
     const lastMsg = messages[messages.length - 1];
     if (lastMsg) {
-      db.prepare('INSERT INTO messages (conversation_id, role, model_id, content) VALUES (?,?,?,?)').run(conversation_id, 'user', modelId, lastMsg.content);
-      db.prepare(`UPDATE conversations SET updated_at=datetime('now') WHERE id=?`).run(conversation_id);
+      run("INSERT INTO messages (conversation_id, role, model_id, content) VALUES (?,?,?,?)", [conversation_id, 'user', modelId, lastMsg.content]);
+      run("UPDATE conversations SET updated_at=datetime('now') WHERE id=?", [conversation_id]);
     }
 
-    // Build conversation history
-    const history = db.prepare('SELECT role, content FROM messages WHERE conversation_id=? ORDER BY created_at').all(conversation_id);
+    const history = queryAll("SELECT role, content FROM messages WHERE conversation_id=? ORDER BY created_at", [conversation_id]);
     const apiMessages = history.map(m => ({ role: m.role, content: m.content }));
 
-    // SSE
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -465,9 +422,7 @@ const server = createServer(async (req, res) => {
       'X-Accel-Buffering': 'no'
     });
 
-    function sse(event, data) {
-      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-    }
+    function sse(event, data) { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); }
 
     try {
       const apiResp = await fetch(model.base_url.replace(/\/$/, '') + '/chat/completions', {
@@ -496,7 +451,6 @@ const server = createServer(async (req, res) => {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
-
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith('data: ')) continue;
@@ -512,24 +466,15 @@ const server = createServer(async (req, res) => {
               reasoningActive = true;
             }
             if (delta.content) {
-              if (reasoningActive) {
-                sse('reasoning_done', {});
-                reasoningActive = false;
-              }
+              if (reasoningActive) { sse('reasoning_done', {}); reasoningActive = false; }
               fullContent += delta.content;
               sse('content', { delta: delta.content });
             }
           } catch (e) {}
         }
       }
-
       if (reasoningActive) sse('reasoning_done', {});
-
-      // Save assistant message
-      db.prepare('INSERT INTO messages (conversation_id, role, model_id, content, reasoning) VALUES (?,?,?,?,?)').run(
-        conversation_id, 'assistant', modelId, fullContent, fullReasoning || null
-      );
-
+      run("INSERT INTO messages (conversation_id, role, model_id, content, reasoning) VALUES (?,?,?,?,?)", [conversation_id, 'assistant', modelId, fullContent, fullReasoning || null]);
       sse('done', {});
     } catch (err) {
       sse('error', { message: err.message });
@@ -543,7 +488,6 @@ const server = createServer(async (req, res) => {
   res.end('Not found');
 });
 
-// Session cleanup
 setInterval(() => {
   const now = Date.now();
   for (const [sid, s] of sessions) {
