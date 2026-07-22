@@ -128,6 +128,46 @@ const server = createServer(async (req, res) => {
     return serveStatic(res, join(__dirname, file), types[ext] || 'application/octet-stream');
   }
 
+  // --- Auth ---
+  if (method === 'GET' && path === '/api/auth/me') {
+    const s = getSession(req);
+    if (!s) return json(res, { error: 'Unauthorized' }, 401);
+    const user = db.prepare('SELECT id, email, is_admin FROM users WHERE id=?').get(s.userId);
+    return json(res, { user });
+  }
+
+  if (method === 'POST' && path === '/api/auth/register') {
+    const { email, password } = await parseBody(req);
+    if (!email || !password || password.length < 4) return json(res, { error: '邮箱和密码必填(最少4位)' }, 400);
+    const existing = db.prepare('SELECT id FROM users WHERE email=?').get(email);
+    if (existing) return json(res, { error: '邮箱已注册' }, 409);
+    const hash = await bcrypt.hash(password, 10);
+    const isAdmin = needsSetup ? 1 : 0;
+    const r = db.prepare('INSERT INTO users (email, password_hash, is_admin) VALUES (?,?,?)').run(email, hash, isAdmin);
+    if (isAdmin) needsSetup = false;
+    setSession(res, Number(r.lastInsertRowid));
+    return json(res, { user: { id: r.lastInsertRowid, email, is_admin: isAdmin } }, 201);
+  }
+
+  if (method === 'POST' && path === '/api/auth/login') {
+    const { email, password } = await parseBody(req);
+    const user = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+    if (!user) return json(res, { error: '邮箱或密码错误' }, 401);
+    const ok = await bcrypt.compare(password, user.password_hash);
+    if (!ok) return json(res, { error: '邮箱或密码错误' }, 401);
+    setSession(res, user.id);
+    return json(res, { user: { id: user.id, email: user.email, is_admin: user.is_admin } });
+  }
+
+  if (method === 'POST' && path === '/api/auth/logout') {
+    res.setHeader('Set-Cookie', 'sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+    return json(res, { ok: true });
+  }
+
+  if (method === 'GET' && path === '/api/auth/needs-setup') {
+    return json(res, { needsSetup });
+  }
+
   res.writeHead(404);
   res.end('Not found');
 });
