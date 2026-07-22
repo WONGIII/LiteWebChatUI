@@ -5,6 +5,8 @@
   <rect x="56" y="24" width="48" height="16" rx="8" fill="#e5e7eb"/>
   <!-- AI 回复第一条（左下，白色） -->
   <rect x="24" y="52" width="64" height="18" rx="9" fill="#fff"/>
+  <!-- 尾巴（居中底部小三角） -->
+  <path d="M50 70L56 80L62 70Z" fill="#fff"/>
   <!-- AI 回复第二条（左下第二行，浅灰） -->
   <rect x="24" y="84" width="52" height="18" rx="9" fill="#e5e7eb"/>
 </svg>
