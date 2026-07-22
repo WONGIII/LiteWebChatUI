@@ -59,6 +59,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
     role TEXT NOT NULL,
+    model_id TEXT,
     content TEXT NOT NULL,
     reasoning TEXT,
     tokens_used INTEGER,
@@ -66,6 +67,29 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at);
 `);
+
+// Migration: add model_id to messages if missing
+try {
+  db.prepare('SELECT model_id FROM messages LIMIT 0').all();
+} catch (e) {
+  db.exec('ALTER TABLE messages ADD COLUMN model_id TEXT');
+}
+
+// Migration: add approved to users if missing
+try {
+  db.prepare('SELECT approved FROM users LIMIT 0').all();
+} catch (e) {
+  db.exec('ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 1');
+  db.exec(`UPDATE users SET approved=1 WHERE is_admin=1`);
+  db.exec(`UPDATE users SET approved=0 WHERE is_admin=0 AND approved IS NULL`);
+}
+
+// Migration: add is_custom to models for manually-added models
+try {
+  db.prepare('SELECT is_custom FROM models LIMIT 0').all();
+} catch (e) {
+  db.exec('ALTER TABLE models ADD COLUMN is_custom INTEGER DEFAULT 0');
+}
 
 const adminCount = db.prepare('SELECT COUNT(*) as c FROM users WHERE is_admin=1').get();
 let needsSetup = adminCount.c === 0;
@@ -121,33 +145,47 @@ function requireAdmin(req, res) {
   return user;
 }
 
+function requireApproved(req, res) {
+  const s = getSession(req);
+  if (!s) { json(res, { error: 'Unauthorized' }, 401); return null; }
+  const user = db.prepare('SELECT * FROM users WHERE id=?').get(s.userId);
+  if (!user) { json(res, { error: 'Unauthorized' }, 401); return null; }
+  if (!user.is_admin && !user.approved) { json(res, { error: '账号待审核，请等待管理员通过' }, 403); return null; }
+  return user;
+}
+
 function getMimeType(filePath) {
   const ext = filePath.split('.').pop().toLowerCase();
   const types = { html: 'text/html', css: 'text/css', js: 'application/javascript', svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', ico: 'image/x-icon', json: 'application/json' };
   return types[ext] || 'application/octet-stream';
 }
 
-function parseMultipart(buffer) {
-  const str = buffer.toString();
-  const boundaryMatch = str.match(/boundary=([^\r\n]+)/);
-  if (!boundaryMatch) return null;
-  const boundary = boundaryMatch[1].trim();
-  const parts = str.split('--' + boundary);
-  for (const part of parts) {
-    if (!part.includes('filename="')) continue;
-    const filenameMatch = part.match(/filename="([^"]+)"/);
-    if (!filenameMatch) continue;
-    const headerEnd = part.indexOf('\r\n\r\n');
-    if (headerEnd < 0) continue;
-    let bodyStart = headerEnd + 4;
-    let body = buffer.slice(bodyStart);
-    let dataEnd = body.length - 4;
-    while (dataEnd > 0) {
-      if (body[dataEnd] === 0x2d && body[dataEnd + 1] === 0x2d) { dataEnd -= 2; break; }
-      dataEnd--;
+function parseMultipart(buffer, contentType) {
+  const hdrMatch = contentType.match(/boundary=([^;]+)/);
+  if (!hdrMatch) return null;
+  const boundary = hdrMatch[1].trim().replace(/^"|"$/g, '');
+  const boundaryBytes = Buffer.from('--' + boundary);
+  let idx = buffer.indexOf(boundaryBytes);
+  if (idx < 0) return null;
+  idx += boundaryBytes.length;
+  while (idx < buffer.length) {
+    while (idx < buffer.length && (buffer[idx] === 0x0d || buffer[idx] === 0x0a)) idx++;
+    const hdrEnd = buffer.indexOf('\r\n\r\n', idx);
+    if (hdrEnd < 0) break;
+    const headerStr = buffer.slice(idx, hdrEnd).toString();
+    const fnMatch = headerStr.match(/filename="([^"]+)"/);
+    if (fnMatch) {
+      const bodyStart = hdrEnd + 4;
+      const nextBoundary = buffer.indexOf(boundaryBytes, bodyStart);
+      if (nextBoundary < 0) return null;
+      let bodyEnd = nextBoundary - 2;
+      while (bodyEnd > bodyStart && (buffer[bodyEnd] === 0x0d || buffer[bodyEnd] === 0x0a)) bodyEnd--;
+      bodyEnd++;
+      return { filename: fnMatch[1], data: buffer.slice(bodyStart, bodyEnd) };
     }
-    const fileData = body.slice(0, dataEnd);
-    return { filename: filenameMatch[1], data: fileData };
+    idx = buffer.indexOf(boundaryBytes, hdrEnd);
+    if (idx < 0) break;
+    idx += boundaryBytes.length;
   }
   return null;
 }
@@ -171,15 +209,17 @@ const server = createServer(async (req, res) => {
 
   // --- Pages ---
   if (method === 'GET') {
-    const pages = { '/': 'login.html', '/login.html': 'login.html', '/index.html': 'index.html', '/admin.html': 'admin.html' };
+    const pages = { '/': 'login.html', '/login': 'login.html', '/chat': 'index.html', '/admin': 'admin.html' };
     if (pages[path]) return serveStatic(res, join(PUBLIC_DIR, pages[path]), 'text/html');
+    const redirects = { '/login.html': '/login', '/index.html': '/chat', '/admin.html': '/admin' };
+    if (redirects[path]) { res.writeHead(301, { Location: redirects[path] }); res.end(); return; }
   }
 
   // --- Auth ---
   if (method === 'GET' && path === '/api/auth/me') {
     const s = getSession(req);
     if (!s) return json(res, { error: 'Unauthorized' }, 401);
-    const user = db.prepare('SELECT id, email, is_admin FROM users WHERE id=?').get(s.userId);
+    const user = db.prepare('SELECT id, email, is_admin, approved FROM users WHERE id=?').get(s.userId);
     return json(res, { user });
   }
 
@@ -190,7 +230,7 @@ const server = createServer(async (req, res) => {
     if (existing) return json(res, { error: '邮箱已注册' }, 409);
     const hash = await bcrypt.hash(password, 10);
     const isAdmin = needsSetup ? 1 : 0;
-    const r = db.prepare('INSERT INTO users (email, password_hash, is_admin) VALUES (?,?,?)').run(email, hash, isAdmin);
+    const r = db.prepare('INSERT INTO users (email, password_hash, is_admin, approved) VALUES (?,?,?,?)').run(email, hash, isAdmin, isAdmin ? 1 : 0);
     if (isAdmin) needsSetup = false;
     setSession(res, Number(r.lastInsertRowid));
     return json(res, { user: { id: r.lastInsertRowid, email, is_admin: isAdmin } }, 201);
@@ -203,7 +243,7 @@ const server = createServer(async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return json(res, { error: '邮箱或密码错误' }, 401);
     setSession(res, user.id);
-    return json(res, { user: { id: user.id, email: user.email, is_admin: user.is_admin } });
+    return json(res, { user: { id: user.id, email: user.email, is_admin: user.is_admin, approved: user.approved } });
   }
 
   if (method === 'POST' && path === '/api/auth/logout') {
@@ -226,12 +266,7 @@ const server = createServer(async (req, res) => {
     const admin = requireAdmin(req, res); if (!admin) return;
     const { name, base_url, api_key } = await parseBody(req);
     if (!base_url || !api_key) return json(res, { error: 'Base URL 和 API Key 必填' }, 400);
-    const existing = db.prepare('SELECT id FROM providers').all();
-    if (existing.length > 0) {
-      db.prepare('UPDATE providers SET name=?, base_url=?, api_key=? WHERE id=?').run(name || '', base_url, api_key, existing[0].id);
-    } else {
-      db.prepare('INSERT INTO providers (name, base_url, api_key) VALUES (?,?,?)').run(name || '', base_url, api_key);
-    }
+    db.prepare('INSERT INTO providers (name, base_url, api_key) VALUES (?,?,?)').run(name || '', base_url, api_key);
     return json(res, { ok: true });
   }
 
@@ -293,6 +328,13 @@ const server = createServer(async (req, res) => {
     return json(res, { ok: true });
   }
 
+  if (method === 'DELETE' && path.startsWith('/api/admin/models/')) {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const mid = parseInt(path.split('/').pop());
+    db.prepare('DELETE FROM models WHERE id=?').run(mid);
+    return json(res, { ok: true });
+  }
+
   if (method === 'POST' && path.match(/^\/api\/admin\/models\/(\d+)\/logo$/)) {
     const admin = requireAdmin(req, res); if (!admin) return;
     const mid = parseInt(path.split('/')[4]);
@@ -301,7 +343,7 @@ const server = createServer(async (req, res) => {
     const buffers = [];
     for await (const chunk of req) buffers.push(chunk);
     const buf = Buffer.concat(buffers);
-    const result = parseMultipart(buf);
+    const result = parseMultipart(buf, req.headers['content-type']);
     if (!result) return json(res, { error: '未找到上传文件' }, 400);
     const ext = result.filename.split('.').pop().toLowerCase();
     if (!['png', 'jpg', 'jpeg', 'svg', 'webp'].includes(ext)) return json(res, { error: '仅支持 PNG/JPG/SVG/WEBP' }, 400);
@@ -311,6 +353,43 @@ const server = createServer(async (req, res) => {
     const logoUrl = `/uploads/${filename}`;
     db.prepare('UPDATE models SET logo_url=? WHERE id=?').run(logoUrl, mid);
     return json(res, { ok: true, logo_url: logoUrl });
+  }
+
+  // --- Admin: Custom model ---
+  if (method === 'POST' && path === '/api/admin/models/custom') {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const { provider_id, model_id, display_name, visible, supports_reasoning } = await parseBody(req);
+    if (!provider_id || !model_id) return json(res, { error: '提供商和模型ID必填' }, 400);
+    const exists = db.prepare('SELECT id FROM models WHERE model_id=?').get(model_id);
+    if (exists) return json(res, { error: '模型ID已存在' }, 409);
+    db.prepare('INSERT INTO models (provider_id, model_id, display_name, visible, supports_reasoning, is_custom) VALUES (?,?,?,?,?,1)').run(
+      provider_id, model_id, display_name || model_id, visible !== undefined ? (visible ? 1 : 0) : 1, supports_reasoning ? 1 : 0
+    );
+    return json(res, { ok: true });
+  }
+
+  // --- Admin: User management ---
+  if (method === 'GET' && path === '/api/admin/users') {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const users = db.prepare('SELECT id, email, is_admin, approved, created_at FROM users ORDER BY created_at DESC').all();
+    return json(res, users);
+  }
+
+  if (method === 'PATCH' && path.startsWith('/api/admin/users/')) {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const uid = parseInt(path.split('/').pop());
+    const body = await parseBody(req);
+    if (body.approved !== undefined) {
+      db.prepare('UPDATE users SET approved=? WHERE id=? AND is_admin=0').run(body.approved ? 1 : 0, uid);
+    }
+    return json(res, { ok: true });
+  }
+
+  if (method === 'DELETE' && path.startsWith('/api/admin/users/')) {
+    const admin = requireAdmin(req, res); if (!admin) return;
+    const uid = parseInt(path.split('/').pop());
+    db.prepare('DELETE FROM users WHERE id=? AND is_admin=0').run(uid);
+    return json(res, { ok: true });
   }
 
   // --- User: Models ---
@@ -324,43 +403,43 @@ const server = createServer(async (req, res) => {
 
   // --- User: Conversations ---
   if (method === 'GET' && path === '/api/conversations') {
-    const s = getSession(req); if (!s) return json(res, { error: 'Unauthorized' }, 401);
-    const convs = db.prepare('SELECT * FROM conversations WHERE user_id=? ORDER BY updated_at DESC').all(s.userId);
+    const user = requireApproved(req, res); if (!user) return;
+    const convs = db.prepare('SELECT * FROM conversations WHERE user_id=? ORDER BY updated_at DESC').all(user.id);
     return json(res, convs);
   }
 
   if (method === 'POST' && path === '/api/conversations') {
-    const s = getSession(req); if (!s) return json(res, { error: 'Unauthorized' }, 401);
+    const user = requireApproved(req, res); if (!user) return;
     const { model_id } = await parseBody(req);
-    const r = db.prepare('INSERT INTO conversations (user_id, model_id, title) VALUES (?,?,?)').run(s.userId, model_id, '新对话');
-    return json(res, { id: Number(r.lastInsertRowid), user_id: s.userId, model_id, title: '新对话' }, 201);
+    const r = db.prepare('INSERT INTO conversations (user_id, model_id, title) VALUES (?,?,?)').run(user.id, model_id, '新对话');
+    return json(res, { id: Number(r.lastInsertRowid), user_id: user.id, model_id, title: '新对话' }, 201);
   }
 
   if (method === 'PATCH' && path.startsWith('/api/conversations/')) {
-    const s = getSession(req); if (!s) return json(res, { error: 'Unauthorized' }, 401);
+    const user = requireApproved(req, res); if (!user) return;
     const cid = parseInt(path.split('/').pop());
     const { title } = await parseBody(req);
-    db.prepare('UPDATE conversations SET title=?, updated_at=datetime("now") WHERE id=? AND user_id=?').run(title, cid, s.userId);
+    db.prepare(`UPDATE conversations SET title=?, updated_at=datetime('now') WHERE id=? AND user_id=?`).run(title, cid, user.id);
     return json(res, { ok: true });
   }
 
   if (method === 'DELETE' && path.startsWith('/api/conversations/')) {
-    const s = getSession(req); if (!s) return json(res, { error: 'Unauthorized' }, 401);
+    const user = requireApproved(req, res); if (!user) return;
     const cid = parseInt(path.split('/').pop());
-    db.prepare('DELETE FROM conversations WHERE id=? AND user_id=?').run(cid, s.userId);
+    db.prepare('DELETE FROM conversations WHERE id=? AND user_id=?').run(cid, user.id);
     return json(res, { ok: true });
   }
 
   if (method === 'GET' && path.match(/^\/api\/conversations\/(\d+)\/messages$/)) {
-    const s = getSession(req); if (!s) return json(res, { error: 'Unauthorized' }, 401);
+    const user = requireApproved(req, res); if (!user) return;
     const cid = parseInt(path.split('/')[3]);
-    const messages = db.prepare('SELECT * FROM messages WHERE conversation_id=? ORDER BY created_at').all(cid);
+    const messages = db.prepare(`SELECT m.*, md.logo_url as model_logo_url, md.display_name as model_display_name FROM messages m LEFT JOIN models md ON m.model_id=md.model_id WHERE m.conversation_id=? ORDER BY m.created_at`).all(cid);
     return json(res, messages);
   }
 
   // --- Chat SSE ---
   if (method === 'POST' && path === '/api/chat/completions') {
-    const s = getSession(req); if (!s) return json(res, { error: 'Unauthorized' }, 401);
+    const user = requireApproved(req, res); if (!user) return;
     const body = await parseBody(req);
     const { conversation_id, model: modelId, messages } = body;
 
@@ -370,8 +449,8 @@ const server = createServer(async (req, res) => {
     // Save user message
     const lastMsg = messages[messages.length - 1];
     if (lastMsg) {
-      db.prepare('INSERT INTO messages (conversation_id, role, content) VALUES (?,?,?)').run(conversation_id, 'user', lastMsg.content);
-      db.prepare('UPDATE conversations SET updated_at=datetime("now") WHERE id=?').run(conversation_id);
+      db.prepare('INSERT INTO messages (conversation_id, role, model_id, content) VALUES (?,?,?,?)').run(conversation_id, 'user', modelId, lastMsg.content);
+      db.prepare(`UPDATE conversations SET updated_at=datetime('now') WHERE id=?`).run(conversation_id);
     }
 
     // Build conversation history
@@ -447,8 +526,8 @@ const server = createServer(async (req, res) => {
       if (reasoningActive) sse('reasoning_done', {});
 
       // Save assistant message
-      db.prepare('INSERT INTO messages (conversation_id, role, content, reasoning) VALUES (?,?,?,?)').run(
-        conversation_id, 'assistant', fullContent, fullReasoning || null
+      db.prepare('INSERT INTO messages (conversation_id, role, model_id, content, reasoning) VALUES (?,?,?,?,?)').run(
+        conversation_id, 'assistant', modelId, fullContent, fullReasoning || null
       );
 
       sse('done', {});

@@ -14,65 +14,69 @@
       管理面板
     </h2>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span id="connStatus" style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-tertiary);">
-        <div style="width:8px;height:8px;border-radius:50%;background:var(--text-muted);"></div>
-        <span>未配置</span>
-      </span>
-      <a href="/index.html" class="btn btn-sm">聊天界面</a>
+      <a href="/chat" class="btn btn-sm">聊天界面</a>
       <button class="btn btn-sm" id="logoutBtn">登出</button>
     </div>
   </div>
 
   <div class="admin-section">
-    <h3>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      API 提供商配置
-    </h3>
+    <h3>API 提供商配置</h3>
     <div class="admin-row">
-      <div class="form-group">
-        <label class="form-label">Base URL</label>
-        <input type="text" class="form-input" id="baseUrl" placeholder="https://api.openai.com/v1">
-      </div>
-      <div class="form-group">
-        <label class="form-label">API Key</label>
-        <input type="password" class="form-input" id="apiKey" placeholder="sk-...">
-      </div>
-      <div class="form-group">
-        <label class="form-label">名称 (可选)</label>
-        <input type="text" class="form-input" id="providerName" placeholder="OpenAI">
-      </div>
+      <div class="form-group"><label class="form-label">名称</label><input type="text" class="form-input" id="providerName" placeholder="OpenAI"></div>
+      <div class="form-group"><label class="form-label">Base URL</label><input type="text" class="form-input" id="baseUrl" placeholder="https://api.openai.com/v1"></div>
+      <div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="apiKey" placeholder="sk-..."></div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="saveProviderBtn">保存配置</button>
-      <button class="btn" id="fetchModelsBtn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-        获取模型列表
-      </button>
-      <span id="fetchStatus" style="font-size:12px;color:var(--text-tertiary);"></span>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;">
+      <button class="btn btn-primary" id="addProviderBtn">添加提供商</button>
+    </div>
+    <div class="provider-list" id="providerList"></div>
+  </div>
+
+  <div class="admin-section">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <h3 style="margin-bottom:0;">模型管理</h3>
+      <button class="btn btn-sm" id="addCustomModelBtn">添加自定义模型</button>
+    </div>
+    <div id="customModelForm" style="display:none;margin-bottom:14px;padding:14px;border:1px solid var(--border-primary);border-radius:10px;background:var(--bg-primary);">
+      <div class="admin-row">
+        <div class="form-group"><label class="form-label">提供商</label><select class="form-input" id="customProviderId"></select></div>
+        <div class="form-group"><label class="form-label">模型 ID</label><input type="text" class="form-input" id="customModelId" placeholder="gpt-4o"></div>
+        <div class="form-group"><label class="form-label">显示名称</label><input type="text" class="form-input" id="customDisplayName" placeholder="GPT-4o"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end;gap:10px;padding-bottom:2px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;"><input type="checkbox" id="customSupportReasoning"> 支持思考链</label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="saveCustomModelBtn">保存</button>
+      <button class="btn btn-sm" onclick="document.getElementById('customModelForm').style.display='none'">取消</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <button class="btn btn-sm" id="selectAllBtn">全选</button>
+      <button class="btn btn-sm" id="deselectBtn">取消</button>
+      <button class="btn btn-sm" id="batchPublicBtn">设为公开</button>
+      <button class="btn btn-sm" id="batchPrivateBtn">设为私密</button>
+      <button class="btn btn-sm" style="background:var(--success);color:#fff;border-color:var(--success);" id="allPublicBtn">一键公开全部</button>
+      <button class="btn btn-sm" style="background:var(--text-muted);color:#fff;border-color:var(--text-muted);" id="allPrivateBtn">一键私密全部</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="admin-table" id="modelTable">
+        <thead><tr><th style="width:32px;"><input type="checkbox" id="selectAllCheckbox" style="cursor:pointer;"></th><th>Logo</th><th>名称</th><th>模型 ID</th><th>提供商</th><th>思考链</th><th>可见性</th><th>操作</th></tr></thead>
+        <tbody id="modelTbody"></tbody>
+      </table>
     </div>
   </div>
 
   <div class="admin-section">
-    <h3>模型管理</h3>
+    <h3>用户管理</h3>
     <div style="overflow-x:auto;">
-      <table class="admin-table" id="modelTable">
-        <thead>
-          <tr>
-            <th>Logo</th><th>名称</th><th>模型 ID</th><th>思考链</th><th>可见性</th>
-          </tr>
-        </thead>
-        <tbody id="modelTbody"></tbody>
+      <table class="admin-table" id="userTable">
+        <thead><tr><th>邮箱</th><th>角色</th><th>状态</th><th>注册时间</th><th>操作</th></tr></thead>
+        <tbody id="userTbody"></tbody>
       </table>
     </div>
-    <p style="font-size:11px;color:var(--text-muted);margin-top:10px;display:flex;align-items:center;gap:4px;">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      点击 Logo 可上传图片。公开模型所有用户可见，私密仅管理员可用。点击切换开关可即时生效。
-    </p>
   </div>
 
   <div id="toastContainer" class="toast-container"></div>
 </div>
-
 <script src="/public/admin.js"></script>
 </body>
 </html>

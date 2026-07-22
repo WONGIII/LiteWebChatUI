@@ -55,9 +55,15 @@ form.addEventListener('submit', async (e) => {
     const data = await res.json();
     if (!res.ok) { formError.textContent = data.error || '请求失败'; return; }
     if (data.user && data.user.is_admin) {
-      window.location.href = '/admin.html';
+      window.location.href = '/admin';
+    } else if (isRegister) {
+      formError.style.color = 'var(--success)';
+      formError.textContent = '注册成功！请等待管理员审核通过后使用';
+      submitBtn.style.display = 'none';
+      document.getElementById('password').style.display = 'none';
+      document.getElementById('email').disabled = true;
     } else {
-      window.location.href = '/index.html';
+      window.location.href = '/chat';
     }
   } catch (err) {
     formError.textContent = '网络错误，请确认服务器已启动';
