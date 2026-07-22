@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <!-- 背景 -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#111827"/>
+  <!-- 用户消息（右上） -->
+  <rect x="56" y="24" width="48" height="16" rx="8" fill="#e5e7eb"/>
+  <!-- AI 回复第一条（左下，白色） -->
+  <rect x="24" y="52" width="64" height="18" rx="9" fill="#fff"/>
+  <!-- 气泡尾巴 -->
+  <path d="M30 74L24 90L42 74H30Z" fill="#fff"/>
+  <!-- AI 回复第二条（左下第二行，浅灰） -->
+  <rect x="24" y="84" width="52" height="18" rx="9" fill="#e5e7eb"/>
+</svg>
