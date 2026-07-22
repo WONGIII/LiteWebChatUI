@@ -1,4 +1,4 @@
-# LiteChat
+# <img src="public/logo.svg" width="36" height="36" style="vertical-align:middle;margin-right:8px;"> LiteChat
 
 轻量化、开箱即用的多用户 AI 对话网站。部署后首次进入创建管理员账号，管理面板支持配置多个 OpenAI 兼容格式的 API 提供商，控制模型对普通用户的可见性。
 

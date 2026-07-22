@@ -42,7 +42,7 @@ async function init() {
     $s('#userAvatar').textContent = (currentUser.email || 'U')[0].toUpperCase();
     if (currentUser.is_admin) $s('#adminLink').style.display = '';
     if (!currentUser.is_admin && !currentUser.approved) {
-      $s('#chatMessages').innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><h3>等待审核</h3><p>您的账号正在等待管理员审核，通过后即可使用</p></div>';
+      $s('#chatMessages').innerHTML = '<div class="empty-state"><img src="/public/logo.svg" width="52" height="52" alt="LiteChat" style="opacity:0.85;"><h3>等待审核</h3><p>您的账号正在等待管理员审核，通过后即可使用</p></div>';
       $s('#msgInput').disabled = true; $s('#sendBtn').disabled = true; $s('#newChatBtn').disabled = true;
       return;
     }
@@ -128,7 +128,7 @@ async function newConversation() {
   conversations.unshift(conv);
   messageModels = {}; userMessages = [];
   currentConvId = conv.id;
-  $s('#chatMessages').innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h3>新对话</h3><p>在下方输入消息开始</p></div>';
+  $s('#chatMessages').innerHTML = '<div class="empty-state"><img src="/public/logo.svg" width="52" height="52" alt="LiteChat" style="opacity:0.85;"><h3>新对话</h3><p>在下方输入消息开始</p></div>';
   convCache[conv.id] = { html: '', userMsgs: [], scrollTop: 0 };
   renderConvList(); updateAnchors(); scrollToBottom(true);
 }
@@ -194,7 +194,7 @@ async function deleteConv(id) {
   delete convCache[id];
   if (currentConvId === id) {
     currentConvId = null; messageModels = {}; userMessages = [];
-    $s('#chatMessages').innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><h3>开始对话</h3><p>选择模型后开始</p></div>';
+    $s('#chatMessages').innerHTML = '<div class="empty-state"><img src="/public/logo.svg" width="52" height="52" alt="LiteChat" style="opacity:0.85;"><h3>开始对话</h3><p>选择模型后开始</p></div>';
     updateAnchors();
   }
   renderConvList();
