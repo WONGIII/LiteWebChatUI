@@ -3,5 +3,5 @@
   <rect x="56" y="24" width="48" height="16" rx="8" fill="#e5e7eb"/>
   <rect x="24" y="52" width="64" height="18" rx="9" fill="#fff"/>
   <polygon points="26,68 14,76 34,68" fill="#fff"/>
-  <rect x="24" y="82" width="52" height="18" rx="9" fill="#e5e7eb"/>
+  <rect x="24" y="88" width="52" height="18" rx="9" fill="#e5e7eb"/>
 </svg>
