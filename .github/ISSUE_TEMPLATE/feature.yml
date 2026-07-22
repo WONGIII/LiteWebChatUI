@@ -1,23 +1,24 @@
----
 name: 功能建议
-about: 为这个项目提出一个想法
-title: "[Feature] "
-labels: enhancement
-assignees: ''
----
-
-## 动机
-
-这个功能解决什么问题？
-
-## 建议方案
-
-描述你期望的解决方案。
-
-## 替代方案
-
-如果有替代方案请描述。
-
-## 补充信息
-
-任何补充信息或截图。
+description: 为这个项目提出一个想法
+labels: [enhancement]
+body:
+  - type: textarea
+    attributes:
+      label: 动机
+      description: 这个功能解决什么问题
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 建议方案
+      description: 描述你期望的解决方案
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 替代方案
+      description: 如果有替代方案请描述
+  - type: textarea
+    attributes:
+      label: 补充信息
+      description: 任何补充信息或截图

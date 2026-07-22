@@ -1,31 +1,38 @@
----
 name: Bug 报告
-about: 创建报告帮助我们改进
-title: "[Bug] "
-labels: bug
-assignees: ''
----
-
-## 描述
-
-清晰简洁地描述这个 Bug。
-
-## 复现步骤
-
-1. 打开 '...'
-2. 点击 '...'
-3. 看到错误 '...'
-
-## 预期行为
-
-简洁描述你期望发生什么。
-
-## 截图
-
-如果有截图请附上。
-
-## 环境
-
-- 操作系统：[Windows / macOS / Linux]
-- 浏览器：[Chrome / Firefox / Edge]
-- LiteChat 版本：[如 git commit hash]
+description: 创建报告帮助我们改进
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: 描述
+      description: 清晰简洁地描述这个 Bug
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 复现步骤
+      description: 如何触发这个 Bug
+      placeholder: |
+        1. 打开 '...'
+        2. 点击 '...'
+        3. 看到错误 '...'
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 预期行为
+      description: 简洁描述你期望发生什么
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 截图
+      description: 如果有截图请拖入
+  - type: input
+    attributes:
+      label: 操作系统
+      placeholder: Windows / macOS / Linux
+  - type: input
+    attributes:
+      label: 浏览器
+      placeholder: Chrome / Firefox / Edge
