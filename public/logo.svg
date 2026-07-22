@@ -1,12 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
-  <!-- 背景 -->
   <rect x="4" y="4" width="120" height="120" rx="28" fill="#111827"/>
-  <!-- 用户消息（右上） -->
   <rect x="56" y="24" width="48" height="16" rx="8" fill="#e5e7eb"/>
-  <!-- AI 回复第一条（左下，白色） -->
   <rect x="24" y="52" width="64" height="18" rx="9" fill="#fff"/>
-  <!-- 尾巴（居中底部小三角） -->
-  <path d="M50 70L56 80L62 70Z" fill="#fff"/>
-  <!-- AI 回复第二条（左下第二行，浅灰） -->
+  <polygon points="34,66 18,82 46,66" fill="#fff"/>
   <rect x="24" y="84" width="52" height="18" rx="9" fill="#e5e7eb"/>
 </svg>
