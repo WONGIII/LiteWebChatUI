@@ -401,7 +401,7 @@ function appendMessage(role, content, reasoning, modelLogoUrl) {
     var logoHtml = modelLogoUrl ? '<div class="msg-avatar-model"><img src="' + modelLogoUrl + '" alt=""></div>' : '<div class="msg-avatar">AI</div>';
     var thinkHtml = '';
     if (reasoning) {
-      thinkHtml = '<div class="think-collapsed" data-reasoning="' + he_attr(reasoning) + '" onclick="toggleThink(\'' + id + '\')">' +
+      thinkHtml = '<div class="think-collapsed" id="' + id + '-think-done" data-reasoning="' + he_attr(reasoning) + '" onclick="toggleThink(\'' + id + '\')">' +
         '<div class="think-bar"></div><span>已深度思考</span>' +
         '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg></div>';
     }
