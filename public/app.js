@@ -462,12 +462,13 @@ window.runHtml = function(btn) {
 function toggleThink(aId) {
   var collapsed = document.getElementById(aId + '-think-done');
   var expanded = document.getElementById(aId + '-think-expanded');
-  if (!collapsed && !expanded) return;
+  if (!collapsed && !expanded) { return; }
   if (expanded) {
     expanded.style.animation = 'thinkCollapse .3s ease-in forwards';
     setTimeout(function() { var e = document.getElementById(aId + '-think-expanded'); if (e) e.remove(); if (collapsed) collapsed.style.display = ''; }, 300);
     return;
   }
+  if (!collapsed) return;
   var reasoning = collapsed.getAttribute('data-reasoning') || '';
   collapsed.style.display = 'none';
   var html = '<div class="think-expanded" id="' + aId + '-think-expanded"><div class="think-bar"></div><div style="flex:1;">' +
