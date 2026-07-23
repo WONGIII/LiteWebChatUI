@@ -337,22 +337,23 @@ function renderStreamed(convId, aId, content, reasoning) {
   var thinkDone = document.getElementById(aId + '-think-done');
 
   if (typeof reasoning === 'string' && reasoning !== 'collapse' && reasoning !== 'done') {
-    // Streaming reasoning: create or update
+    // Streaming reasoning: create or update, save raw text
     if (!thinkStream && !thinkDone) {
       body.insertAdjacentHTML('afterbegin',
-        '<div class="think-streaming" id="' + aId + '-think"><div class="think-bar"></div>' +
+        '<div class="think-streaming" id="' + aId + '-think" data-raw="' + he_attr(reasoning) + '"><div class="think-bar"></div>' +
         '<div style="flex:1;"><div style="font-size:12px;color:var(--text-secondary);margin-bottom:3px;">正在思考 <span class="think-dots"><span></span><span></span><span></span></span></div>' +
         '<div class="think-content"></div></div></div>'
       );
+    } else if (thinkStream) {
+      thinkStream.setAttribute('data-raw', reasoning);
     }
     var tc = document.getElementById(aId + '-think-content') || (thinkStream ? thinkStream.querySelector('.think-content') : null);
     if (tc) tc.innerHTML = renderMd(reasoning);
   }
 
   if ((reasoning === 'collapse' || reasoning === 'done') && thinkStream && !thinkDone) {
-    // Collapse reasoning
-    var rt = thinkStream.querySelector('.think-content');
-    var savedR = rt ? rt.textContent || '' : '';
+    // Collapse reasoning: use raw text from data-raw attribute
+    var savedR = thinkStream.getAttribute('data-raw') || '';
     thinkStream.style.animation = 'thinkCollapse .35s ease-in forwards';
     setTimeout(function() {
       var ts = document.getElementById(aId + '-think');
