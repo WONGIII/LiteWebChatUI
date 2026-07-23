@@ -66,6 +66,7 @@ exec(`CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, creat
 try { queryOne("SELECT model_id FROM messages LIMIT 1"); } catch(e) { exec("ALTER TABLE messages ADD COLUMN model_id TEXT"); }
 try { queryOne("SELECT approved FROM users LIMIT 1"); } catch(e) { exec("ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 1"); exec("UPDATE users SET approved=1 WHERE is_admin=1"); exec("UPDATE users SET approved=0 WHERE is_admin=0"); }
 try { queryOne("SELECT is_custom FROM models LIMIT 1"); } catch(e) { exec("ALTER TABLE models ADD COLUMN is_custom INTEGER DEFAULT 0"); }
+try { queryOne("SELECT csrf_token FROM sessions LIMIT 1"); } catch(e) { exec("ALTER TABLE sessions ADD COLUMN csrf_token TEXT"); }
 
 const adminCount = queryOne("SELECT COUNT(*) as c FROM users WHERE is_admin=1");
 let needsSetup = (adminCount && adminCount.c === 0);
