@@ -186,7 +186,6 @@ a { color: inherit; text-decoration: none; }
   flex: 1; overflow-y: auto; padding: clamp(16px, 2vw, 28px) clamp(16px, 2.5vw, 36px);
   scroll-behavior: auto; background: var(--chat-bg);
 }
-.conv-display { min-height: 100%; }
 
 /* === Messages === */
 .msg-row { display: flex; margin-bottom: clamp(18px, 1.8vw, 28px); }

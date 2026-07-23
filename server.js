@@ -394,7 +394,7 @@ const server = createServer(async (req, res) => {
   if (method === 'GET' && path.match(/^\/api\/conversations\/(\d+)\/messages$/)) {
     const user = requireApproved(req, res); if (!user) return;
     const cid = parseInt(path.split('/')[3]);
-    return json(res, queryAll("SELECT m.*, md.logo_url as model_logo_url, md.display_name as model_display_name FROM messages m LEFT JOIN models md ON m.model_id=md.model_id WHERE m.conversation_id=? ORDER BY m.created_at", [cid]));
+    return json(res, queryAll("SELECT m.*, (SELECT md.logo_url FROM models md WHERE md.model_id=m.model_id LIMIT 1) as model_logo_url, (SELECT md.display_name FROM models md WHERE md.model_id=m.model_id LIMIT 1) as model_display_name FROM messages m WHERE m.conversation_id=? ORDER BY m.created_at", [cid]));
   }
 
   // --- Chat SSE ---
