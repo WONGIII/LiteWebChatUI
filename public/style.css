@@ -509,7 +509,7 @@ a { color: inherit; text-decoration: none; }
 .anchor-dot.active { background: var(--accent); }
 
 .anchor-card {
-  position: absolute; right: 100%; top: 50%; transform: translateY(-50%) translateX(0px);
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
   background: var(--bg-primary); border: 1px solid var(--border-primary);
   border-radius: clamp(8px, 0.7vw + 3px, 12px);
   box-shadow: 0 8px 32px rgba(0,0,0,.14);
