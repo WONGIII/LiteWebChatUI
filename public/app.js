@@ -637,10 +637,17 @@ function highlightActive() {
   if (!msgsEl || anchorData.length === 0) return;
   var t = msgsEl.scrollTop;
   var b = t + msgsEl.clientHeight;
+  // If user is at bottom viewing latest, highlight last message
+  var atBottom = (msgsEl.scrollHeight - b) < 80;
   var best = -1;
-  for (var i = 0; i < anchorData.length; i++) {
-    var el = anchorData[i].el; if (!el) continue;
-    if (el.offsetTop + el.offsetHeight > t && el.offsetTop < b) { best = i; break; }
+  if (atBottom) {
+    best = anchorData.length - 1;
+  } else {
+    for (var i = 0; i < anchorData.length; i++) {
+      var el = anchorData[i].el; if (!el) continue;
+      if (el.offsetTop + el.offsetHeight > t && el.offsetTop < b) { best = i; break; }
+    }
+    if (best < 0) best = anchorData.length - 1;
   }
   if (best < 0) best = anchorData.length - 1;
   var dots = document.querySelectorAll('.anchor-dot');
