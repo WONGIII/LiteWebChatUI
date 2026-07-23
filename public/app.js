@@ -560,21 +560,24 @@ function setupScrollAnchors() {
   });
 }
 
-function updateAnchors() {
+function updateAnchors(focusIdx) {
   var container = $s('#scrollAnchors');
   var rows = $s('#chatMessages').querySelectorAll('.msg-row.user');
   if (rows.length <= 1) { container.style.display = 'none'; return; }
   var v = [];
   for (var i = 0; i < rows.length; i++) { var b = rows[i].querySelector('.msg-bubble'); if (b) v.push({ id: rows[i].id, c: b.textContent || '' }); }
-  // Limit to max 8 dots, show oldest + recent
   var maxDots = 8;
-  var dots = v;
-  if (v.length > maxDots) {
-    dots = v.slice(v.length - maxDots);
+  var startIdx = 0;
+  if (focusIdx !== undefined && focusIdx >= maxDots) {
+    startIdx = Math.max(0, focusIdx - Math.floor(maxDots / 2));
+    if (startIdx + maxDots > v.length) startIdx = v.length - maxDots;
+  } else if (v.length > maxDots) {
+    startIdx = v.length - maxDots;
   }
+  var dots = v.slice(startIdx, startIdx + maxDots);
   container.style.display = 'flex'; var h = '';
   for (var i = 0; i < dots.length; i++) {
-    var dotIdx = v.indexOf(dots[i]);
+    var dotIdx = startIdx + i;
     var cm = '';
     for (var j = 0; j < v.length; j++) { cm += '<div class="ac-msg ' + (j === dotIdx ? 'current' : 'other') + '" onclick="jumpToMsg(\'' + v[j].id + '\')">' + he(v[j].c.slice(0, 60)) + (v[j].c.length > 60 ? '...' : '') + '</div>'; }
     h += '<div class="anchor-dot" data-idx="' + dotIdx + '" data-id="' + dots[i].id + '" onclick="jumpToMsg(\'' + dots[i].id + '\')"><div class="anchor-card">' + cm + '</div></div>';
@@ -606,6 +609,11 @@ function jumpToMsg(id) {
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.style.transition = 'box-shadow .3s'; el.style.boxShadow = '0 0 0 3px rgba(99,102,241,.3)'; el.style.borderRadius = '8px';
   setTimeout(function() { el.style.boxShadow = ''; }, 1500);
+  // Recenter dots around the target message
+  var rows = $s('#chatMessages').querySelectorAll('.msg-row.user');
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) { updateAnchors(i); break; }
+  }
 }
 
 function setupAutoScroll() {
