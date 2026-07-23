@@ -288,7 +288,6 @@ async function sendMessage() {
             else if (evt === 'content') { fullContent += p.delta; }
             else if (evt === 'done') {
               if (fullContent) updateConvTitle(thisConvId, fullContent.replace(/\n/g, ' ').slice(0, 30).trim());
-              loadConversations();
             } else if (evt === 'error') {
               renderStreamed(thisConvId, aId, p.message || '未知错误', 'error');
               return;
@@ -604,9 +603,30 @@ $s('#sidebarOverlay').addEventListener('click', function() { $s('#sidebar').clas
 
 function loadHighlight() {
   if (highlightLoaded) return;
-  var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css'; document.head.appendChild(l);
-  var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js'; s.onload = function() { highlightLoaded = true; }; document.head.appendChild(s);
+  var link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.id = 'hljs-theme';
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  link.href = t === 'dark'
+    ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
+    : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+  document.head.appendChild(link);
+  var script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+  script.onload = function() { highlightLoaded = true; };
+  document.head.appendChild(script);
 }
 loadHighlight();
+
+// Swap hljs theme on dark mode toggle
+$s('#themeToggle').addEventListener('click', function() {
+  var t = document.documentElement.getAttribute('data-theme') || 'light';
+  var link = document.getElementById('hljs-theme');
+  if (link) {
+    link.href = t === 'dark'
+      ? 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css'
+      : 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+  }
+});
 
 init();
