@@ -576,50 +576,66 @@ function updateAnchors(focusIdx) {
 
   var visible = anchorData.slice(start, start + maxDots);
   container.style.display = 'flex';
-  container.innerHTML = '';
 
-  for (var i = 0; i < visible.length; i++) {
-    var gi = start + i;
-    var dot = document.createElement('div');
-    dot.className = 'anchor-dot';
-    dot.setAttribute('data-idx', gi);
-    dot.setAttribute('data-id', visible[i].id);
+  // Animate existing dots out, then rebuild
+  var oldDots = container.querySelectorAll('.anchor-dot');
+  for (var j = 0; j < oldDots.length; j++) {
+    oldDots[j].style.opacity = '0';
+    oldDots[j].style.transform = 'scale(0.6)';
+  }
+  setTimeout(function() {
+    container.innerHTML = '';
+    for (var i = 0; i < visible.length; i++) {
+      var gi = start + i;
+      var dot = document.createElement('div');
+      dot.className = 'anchor-dot';
+      dot.style.opacity = '0';
+      dot.style.transform = 'scale(0.6)';
+      dot.setAttribute('data-idx', gi);
+      dot.setAttribute('data-id', visible[i].id);
 
-    var card = document.createElement('div');
-    card.className = 'anchor-card';
-    for (var j = 0; j < anchorData.length; j++) {
-      var m = document.createElement('div');
-      m.className = 'ac-msg' + (j === gi ? ' current' : ' other');
-      m.textContent = anchorData[j].text.length > 60 ? anchorData[j].text.slice(0, 60) + '...' : anchorData[j].text;
-      m.setAttribute('data-msgid', anchorData[j].id);
-      m.addEventListener('click', function(e) {
-        e.stopPropagation();
-        closeAllCards();
-        jumpToMsg(this.getAttribute('data-msgid'));
-      });
-      card.appendChild(m);
-    }
-    dot.appendChild(card);
+      var card = document.createElement('div');
+      card.className = 'anchor-card';
+      for (var k = 0; k < anchorData.length; k++) {
+        var m = document.createElement('div');
+        m.className = 'ac-msg' + (k === gi ? ' current' : ' other');
+        m.textContent = anchorData[k].text.length > 60 ? anchorData[k].text.slice(0, 60) + '...' : anchorData[k].text;
+        m.setAttribute('data-msgid', anchorData[k].id);
+        m.addEventListener('click', function(e) {
+          e.stopPropagation();
+          closeAllCards();
+          jumpToMsg(this.getAttribute('data-msgid'));
+        });
+        card.appendChild(m);
+      }
+      dot.appendChild(card);
 
-    var timer;
-    function showCard() { clearTimeout(timer); card.classList.add('show'); var cur = card.querySelector('.ac-msg.current'); if (cur) cur.scrollIntoView({ block: 'nearest' }); }
-    function hideCard() { timer = setTimeout(function() { card.classList.remove('show'); }, 200); }
-    dot.addEventListener('mouseenter', showCard);
-    dot.addEventListener('mouseleave', hideCard);
-    card.addEventListener('mouseenter', showCard);
-    card.addEventListener('mouseleave', hideCard);
+      var timer;
+      function showCard() { clearTimeout(timer); card.classList.add('show'); var cur = card.querySelector('.ac-msg.current'); if (cur) cur.scrollIntoView({ block: 'nearest' }); }
+      function hideCard() { timer = setTimeout(function() { card.classList.remove('show'); }, 200); }
+      dot.addEventListener('mouseenter', showCard);
+      dot.addEventListener('mouseleave', hideCard);
+      card.addEventListener('mouseenter', showCard);
+      card.addEventListener('mouseleave', hideCard);
 
-    dot.addEventListener('click', function(e) {
-      if (e.target === dot || e.target.classList.contains('anchor-dot')) {
+      dot.addEventListener('click', function() {
         closeAllCards();
         jumpToMsg(this.getAttribute('data-id'));
-      }
-    }.bind(dot));
+      });
 
-    container.appendChild(dot);
-  }
-  highlightActive();
-}
+      container.appendChild(dot);
+
+      // Animate in with stagger
+      (function(d, idx) {
+        setTimeout(function() {
+          d.style.transition = 'opacity .25s ease, transform .25s ease';
+          d.style.opacity = '1';
+          d.style.transform = 'scale(1)';
+        }, idx * 30);
+      })(dot, i);
+    }
+    highlightActive();
+  }, 150);
 
 function closeAllCards() {
   var cards = document.querySelectorAll('.anchor-card');
