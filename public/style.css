@@ -520,7 +520,6 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-secondary); line-height: 1.6;
 }
 .anchor-card.show { opacity: 1; pointer-events: auto; }
-.anchor-card { pointer-events: none; }
 .anchor-card .ac-msg {
   padding: clamp(6px, 0.5vw + 2px, 8px) 0;
   border-bottom: 1px solid var(--border-secondary); cursor: pointer;

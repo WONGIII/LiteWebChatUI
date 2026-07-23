@@ -613,6 +613,7 @@ function updateAnchors(focusIdx) {
     var timer;
     function showCard() {
       clearTimeout(timer);
+      closeAllCards();
       card.classList.add('show');
       var cur = card.querySelector('.ac-msg.current');
       if (cur) {
