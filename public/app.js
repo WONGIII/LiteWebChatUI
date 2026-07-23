@@ -555,7 +555,7 @@ function setupScrollAnchors() {
     while (el && el !== document.body) { if (el.classList && (el.classList.contains('anchor-dot') || el.classList.contains('anchor-card'))) { on = true; break; } el = el.parentElement; }
     if (!on) {
       var cards = document.querySelectorAll('.anchor-card');
-      for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); }
+      for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); cards[i].classList.remove('show'); }
     }
   });
 }
@@ -586,6 +586,17 @@ function updateAnchors(focusIdx) {
     h += '<div class="anchor-dot" data-idx="' + dotIdx + '" data-id="' + dots[i].id + '" onclick="jumpToMsg(\'' + dots[i].id + '\')"><div class="anchor-card">' + cm + '</div></div>';
   }
   container.innerHTML = h;
+  // Add mouse events to dots for card visibility
+  var dotEls = container.querySelectorAll('.anchor-dot');
+  for (var d = 0; d < dotEls.length; d++) {
+    (function(dot, card) {
+      var hideTimer;
+      dot.addEventListener('mouseenter', function() { clearTimeout(hideTimer); card.classList.add('show'); card.classList.remove('hidden'); });
+      dot.addEventListener('mouseleave', function() { hideTimer = setTimeout(function() { card.classList.remove('show'); card.classList.add('hidden'); }, 100); });
+      card.addEventListener('mouseenter', function() { clearTimeout(hideTimer); card.classList.add('show'); card.classList.remove('hidden'); });
+      card.addEventListener('mouseleave', function() { hideTimer = setTimeout(function() { card.classList.remove('show'); card.classList.add('hidden'); }, 100); });
+    })(dotEls[d], dotEls[d].querySelector('.anchor-card'));
+  }
   highlightActiveAnchor(v);
 }
 
@@ -637,7 +648,7 @@ function jumpToMsg(id) {
     if (rows[i].id === id) { updateAnchors(i); break; }
   }
   var cards = document.querySelectorAll('.anchor-card');
-  for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); }
+  for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); cards[i].classList.remove('show'); }
 }
 
 function setupAutoScroll() {
