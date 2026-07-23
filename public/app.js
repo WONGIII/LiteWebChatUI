@@ -596,23 +596,12 @@ function updateAnchors(focusIdx) {
 
       var card = document.createElement('div');
       card.className = 'anchor-card';
-      for (var k = 0; k < anchorData.length; k++) {
-        var m = document.createElement('div');
-        m.className = 'ac-msg' + (k === gi ? ' current' : ' other');
-        m.textContent = anchorData[k].text.length > 60 ? anchorData[k].text.slice(0, 60) + '...' : anchorData[k].text;
-        m.setAttribute('data-msgid', anchorData[k].id);
-        m.addEventListener('click', function(e) {
-          e.stopPropagation();
-          closeAllCards();
-          jumpToMsg(this.getAttribute('data-msgid'));
-        });
-        card.appendChild(m);
-      }
+      card.textContent = visible[i].text;
       dot.appendChild(card);
 
-      var timer;
-      function showCard() { clearTimeout(timer); card.classList.add('show'); var cur = card.querySelector('.ac-msg.current'); if (cur) card.scrollTop = cur.offsetTop - card.offsetHeight / 2; }
-      function hideCard() { timer = setTimeout(function() { card.classList.remove('show'); }, 200); }
+    var timer;
+    function showCard() { clearTimeout(timer); card.classList.add('show'); }
+    function hideCard() { timer = setTimeout(function() { card.classList.remove('show'); }, 200); }
       dot.addEventListener('mouseenter', showCard);
       dot.addEventListener('mouseleave', hideCard);
       card.addEventListener('mouseenter', showCard);
