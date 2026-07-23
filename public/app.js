@@ -560,6 +560,8 @@ function setupScrollAnchors() {
   });
 }
 
+var anchorFocusIdx = -1; // sticky focus for recentering
+
 function updateAnchors(focusIdx) {
   var container = $s('#scrollAnchors');
   var rows = $s('#chatMessages').querySelectorAll('.msg-row.user');
@@ -568,8 +570,9 @@ function updateAnchors(focusIdx) {
   for (var i = 0; i < rows.length; i++) { var b = rows[i].querySelector('.msg-bubble'); if (b) v.push({ id: rows[i].id, c: b.textContent || '' }); }
   var maxDots = 8;
   var startIdx = 0;
-  if (focusIdx !== undefined && focusIdx >= maxDots) {
-    startIdx = Math.max(0, focusIdx - Math.floor(maxDots / 2));
+  if (focusIdx !== undefined && focusIdx >= 0) { anchorFocusIdx = focusIdx; }
+  if (anchorFocusIdx >= 0 && anchorFocusIdx < v.length) {
+    startIdx = Math.max(0, anchorFocusIdx - Math.floor(maxDots / 2));
     if (startIdx + maxDots > v.length) startIdx = v.length - maxDots;
   } else if (v.length > maxDots) {
     startIdx = v.length - maxDots;
@@ -588,14 +591,33 @@ function updateAnchors(focusIdx) {
 
 function highlightActiveAnchor(allMsgs) {
   var msgsEl = $s('#chatMessages');
-  var viewCenter = msgsEl.scrollTop + msgsEl.clientHeight / 2;
-  var best = null, bestDist = Infinity;
+  var viewTop = msgsEl.scrollTop;
+  var viewBottom = viewTop + msgsEl.clientHeight;
+  var best = -1;
+  // Find the topmost user message that is within the viewport
   for (var i = 0; i < allMsgs.length; i++) {
     var el = document.getElementById(allMsgs[i].id);
     if (!el) continue;
-    var elCenter = el.offsetTop + el.offsetHeight / 2;
-    var dist = Math.abs(elCenter - viewCenter);
-    if (dist < bestDist) { bestDist = dist; best = i; }
+    var elTop = el.offsetTop;
+    var elBottom = elTop + el.offsetHeight;
+    // Message is at least 30% visible in viewport
+    var visibleTop = Math.max(elTop, viewTop);
+    var visibleBottom = Math.min(elBottom, viewBottom);
+    var visibleHeight = visibleBottom - visibleTop;
+    if (visibleHeight > el.offsetHeight * 0.3) {
+      best = i; break; // Take the first one that's sufficiently visible
+    }
+  }
+  // If none visible, find closest to viewport center
+  if (best < 0) {
+    var viewCenter = viewTop + msgsEl.clientHeight / 2;
+    var bestDist = Infinity;
+    for (var i = 0; i < allMsgs.length; i++) {
+      var el = document.getElementById(allMsgs[i].id);
+      if (!el) continue;
+      var dist = Math.abs((el.offsetTop + el.offsetHeight / 2) - viewCenter);
+      if (dist < bestDist) { bestDist = dist; best = i; }
+    }
   }
   var dots = document.querySelectorAll('.anchor-dot');
   for (var i = 0; i < dots.length; i++) {
@@ -609,11 +631,13 @@ function jumpToMsg(id) {
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   el.style.transition = 'box-shadow .3s'; el.style.boxShadow = '0 0 0 3px rgba(99,102,241,.3)'; el.style.borderRadius = '8px';
   setTimeout(function() { el.style.boxShadow = ''; }, 1500);
-  // Recenter dots around the target message
+  // Recenter dots & hide cards
   var rows = $s('#chatMessages').querySelectorAll('.msg-row.user');
   for (var i = 0; i < rows.length; i++) {
     if (rows[i].id === id) { updateAnchors(i); break; }
   }
+  var cards = document.querySelectorAll('.anchor-card');
+  for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); }
 }
 
 function setupAutoScroll() {
