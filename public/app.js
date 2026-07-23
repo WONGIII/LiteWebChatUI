@@ -636,6 +636,7 @@ function updateAnchors(focusIdx) {
     }
     highlightActive();
   }, 150);
+}
 
 function closeAllCards() {
   var cards = document.querySelectorAll('.anchor-card');
