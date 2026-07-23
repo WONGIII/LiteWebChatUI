@@ -199,8 +199,8 @@ const server = createServer(async (req, res) => {
     if (redirects[path]) { res.writeHead(301, { Location: redirects[path] }); res.end(); return; }
   }
 
-  // CSRF validation for state-changing requests
-  if ((method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') && path.startsWith('/api/')) {
+  // CSRF validation for state-changing requests (exclude auth endpoints)
+  if ((method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') && path.startsWith('/api/') && !path.startsWith('/api/auth/')) {
     if (!verifyCsrf(req)) return json(res, { error: 'CSRF token invalid' }, 403);
   }
 
