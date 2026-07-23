@@ -529,6 +529,7 @@ a { color: inherit; text-decoration: none; }
 .anchor-card .ac-msg:last-child { border-bottom: none; }
 .anchor-card .ac-msg:hover, .anchor-card .ac-msg.current { color: var(--text-primary); }
 .anchor-card .ac-msg.other { color: var(--text-muted); }
+.anchor-card .ac-msg:hover { color: var(--text-primary); background: var(--bg-hover); }
 
 /* === Smooth transitions & animations === */
 .sidebar { transition: transform .3s cubic-bezier(0.4,0,0.2,1); }

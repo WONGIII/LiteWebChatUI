@@ -602,7 +602,7 @@ function updateAnchors(focusIdx) {
     dot.appendChild(card);
 
     var timer;
-    function showCard() { clearTimeout(timer); card.classList.add('show'); }
+    function showCard() { clearTimeout(timer); card.classList.add('show'); var cur = card.querySelector('.ac-msg.current'); if (cur) cur.scrollIntoView({ block: 'nearest' }); }
     function hideCard() { timer = setTimeout(function() { card.classList.remove('show'); }, 200); }
     dot.addEventListener('mouseenter', showCard);
     dot.addEventListener('mouseleave', hideCard);
