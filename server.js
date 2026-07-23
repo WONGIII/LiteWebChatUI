@@ -202,6 +202,8 @@ const server = createServer(async (req, res) => {
 
   // CSRF validation for state-changing requests (exclude auth endpoints)
   if ((method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') && path.startsWith('/api/') && !path.startsWith('/api/auth/')) {
+    const s = getSession(req);
+    if (!s) return json(res, { error: 'Unauthorized' }, 401);
     if (!verifyCsrf(req)) return json(res, { error: 'CSRF token invalid' }, 403);
   }
 

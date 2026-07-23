@@ -1,5 +1,13 @@
 var tc = document.getElementById('toastContainer');
 function getCsrfToken() { return localStorage.getItem('csrfToken') || ''; }
+function handleAuthError(res) {
+  if (res.status === 401) {
+    localStorage.removeItem('csrfToken');
+    window.location.href = '/login';
+    return true;
+  }
+  return false;
+}
 function toast(msg, type) {
   var el = document.createElement('div');
   el.className = 'toast ' + (type || 'success');
@@ -36,6 +44,7 @@ var allProviders = [];
 
 async function loadProviders() {
   var res = await fetch('/api/admin/providers');
+  if (handleAuthError(res)) return;
   allProviders = await res.json();
   renderProviders();
   updateProviderSelect();
@@ -110,6 +119,7 @@ var allModels = [];
 
 async function loadModels() {
   var res = await fetch('/api/admin/models');
+  if (handleAuthError(res)) return;
   allModels = await res.json();
   var tbody = document.getElementById('modelTbody');
   document.getElementById('selectAllCheckbox').checked = false;
@@ -246,6 +256,7 @@ document.getElementById('allPrivateBtn').addEventListener('click', function() {
 // ===== User Management =====
 async function loadUsers() {
   var res = await fetch('/api/admin/users');
+  if (handleAuthError(res)) return;
   var users = await res.json();
   var tbody = document.getElementById('userTbody');
   tbody.innerHTML = users.map(function(u) {

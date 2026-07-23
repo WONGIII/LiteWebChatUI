@@ -34,6 +34,15 @@ $s('#themeToggle').addEventListener('click', function() {
 // === Auth ===
 function getCsrfToken() { return localStorage.getItem('csrfToken') || ''; }
 
+function handleAuthError(res) {
+  if (res.status === 401) {
+    localStorage.removeItem('csrfToken');
+    window.location.href = '/login';
+    return true;
+  }
+  return false;
+}
+
 async function init() {
   try {
     var res = await fetch('/api/auth/me');
@@ -64,6 +73,7 @@ $s('#logoutBtn').addEventListener('click', async function() {
 async function loadModels() {
   try {
     var res = await fetch('/api/models');
+    if (handleAuthError(res)) return;
     models = await res.json();
     var visible = models.filter(function(m) { return m.visible; });
     if (visible.length > 0) selectModel(visible[0]);
@@ -104,7 +114,7 @@ document.addEventListener('click', function() { $s('#modelDropdown').style.displ
 
 // === Conversations ===
 async function loadConversations() {
-  try { var res = await fetch('/api/conversations'); conversations = await res.json(); renderConvList(); } catch(e) {}
+  try { var res = await fetch('/api/conversations'); if (handleAuthError(res)) return; conversations = await res.json(); renderConvList(); } catch(e) {}
 }
 
 function renderConvList() {
@@ -126,6 +136,7 @@ function renderConvList() {
 async function newConversation() {
   if (!currentModel) return;
   var res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() }, body: JSON.stringify({ model_id: currentModel.model_id }) });
+  if (handleAuthError(res)) return;
   var conv = await res.json();
   conversations.unshift(conv);
   messageModels = {}; userMessages = [];
@@ -191,7 +202,8 @@ async function openConversation(id) {
 }
 
 async function deleteConv(id) {
-  await fetch('/api/conversations/' + id, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfToken() } });
+  var res = await fetch('/api/conversations/' + id, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfToken() } });
+  if (handleAuthError(res)) return;
   conversations = conversations.filter(function(c) { return c.id !== id; });
   delete convCache[id];
   if (currentConvId === id) {
@@ -257,6 +269,8 @@ async function sendMessage() {
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ conversation_id: thisConvId, model: currentModel.model_id, messages: history })
     });
+
+    if (handleAuthError(res)) return;
 
     // Remove waiting indicator
     var waitEl = document.getElementById(aId + '-wait');
