@@ -566,13 +566,39 @@ function updateAnchors() {
   if (rows.length <= 1) { container.style.display = 'none'; return; }
   var v = [];
   for (var i = 0; i < rows.length; i++) { var b = rows[i].querySelector('.msg-bubble'); if (b) v.push({ id: rows[i].id, c: b.textContent || '' }); }
+  // Limit to max 8 dots, show oldest + recent
+  var maxDots = 8;
+  var dots = v;
+  if (v.length > maxDots) {
+    dots = v.slice(v.length - maxDots);
+  }
   container.style.display = 'flex'; var h = '';
-  for (var i = 0; i < v.length; i++) {
-    var isL = i === v.length - 1, cm = '';
-    for (var j = 0; j < v.length; j++) { cm += '<div class="ac-msg ' + (j === i ? 'current' : 'other') + '" onclick="jumpToMsg(\'' + v[j].id + '\')">' + he(v[j].c.slice(0, 60)) + (v[j].c.length > 60 ? '...' : '') + '</div>'; }
-    h += '<div class="anchor-dot' + (isL ? ' active' : '') + '" onclick="jumpToMsg(\'' + v[i].id + '\')"><div class="anchor-card">' + cm + '</div></div>';
+  for (var i = 0; i < dots.length; i++) {
+    var dotIdx = v.indexOf(dots[i]);
+    var cm = '';
+    for (var j = 0; j < v.length; j++) { cm += '<div class="ac-msg ' + (j === dotIdx ? 'current' : 'other') + '" onclick="jumpToMsg(\'' + v[j].id + '\')">' + he(v[j].c.slice(0, 60)) + (v[j].c.length > 60 ? '...' : '') + '</div>'; }
+    h += '<div class="anchor-dot" data-idx="' + dotIdx + '" data-id="' + dots[i].id + '" onclick="jumpToMsg(\'' + dots[i].id + '\')"><div class="anchor-card">' + cm + '</div></div>';
   }
   container.innerHTML = h;
+  highlightActiveAnchor(v);
+}
+
+function highlightActiveAnchor(allMsgs) {
+  var msgsEl = $s('#chatMessages');
+  var viewCenter = msgsEl.scrollTop + msgsEl.clientHeight / 2;
+  var best = null, bestDist = Infinity;
+  for (var i = 0; i < allMsgs.length; i++) {
+    var el = document.getElementById(allMsgs[i].id);
+    if (!el) continue;
+    var elCenter = el.offsetTop + el.offsetHeight / 2;
+    var dist = Math.abs(elCenter - viewCenter);
+    if (dist < bestDist) { bestDist = dist; best = i; }
+  }
+  var dots = document.querySelectorAll('.anchor-dot');
+  for (var i = 0; i < dots.length; i++) {
+    var idx = parseInt(dots[i].getAttribute('data-idx'));
+    if (idx === best) { dots[i].classList.add('active'); } else { dots[i].classList.remove('active'); }
+  }
 }
 
 function jumpToMsg(id) {
@@ -585,7 +611,16 @@ function jumpToMsg(id) {
 function setupAutoScroll() {
   var msgs = $s('#chatMessages');
   msgs.addEventListener('wheel', function(e) { if (e.deltaY < -5) autoScroll = false; }, { passive: true });
-  msgs.addEventListener('scroll', function() { var d = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight; if (d < 40) autoScroll = true; if (d > 120) autoScroll = false; });
+  msgs.addEventListener('scroll', function() {
+    var d = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight;
+    if (d < 40) autoScroll = true;
+    if (d > 120) autoScroll = false;
+    // Update active anchor
+    var rows = msgs.querySelectorAll('.msg-row.user');
+    var v = [];
+    for (var i = 0; i < rows.length; i++) { var b = rows[i].querySelector('.msg-bubble'); if (b) v.push({ id: rows[i].id, c: b.textContent || '' }); }
+    if (v.length > 0) highlightActiveAnchor(v);
+  });
 }
 
 function scrollToBottom(force) {

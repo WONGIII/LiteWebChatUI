@@ -520,9 +520,12 @@ a { color: inherit; text-decoration: none; }
   opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease;
   color: var(--text-secondary); line-height: 1.6;
 }
+.anchor-card::-webkit-scrollbar { width: 4px; }
+.anchor-card::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 2px; }
+.anchor-card { scrollbar-width: thin; scrollbar-color: var(--border-primary) transparent; }
 .anchor-card.hidden { opacity: 0; pointer-events: none; }
 .anchor-dot:hover .anchor-card { opacity: 1 !important; pointer-events: auto !important; transform: translateY(-50%) translateX(0); }
-.anchor-card:hover { opacity: 1 !important; pointer-events: auto; transform: translateY(-50%) translateX(0); }
+.anchor-card:hover { opacity: 1 !important; pointer-events: auto !important; transform: translateY(-50%) translateX(0); }
 .anchor-card .ac-msg {
   padding: clamp(6px, 0.5vw + 2px, 8px) 0;
   border-bottom: 1px solid var(--border-secondary); cursor: pointer;
