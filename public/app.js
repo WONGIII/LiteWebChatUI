@@ -548,107 +548,116 @@ function rI(t) {
   return s;
 }
 
-// === Scroll anchors ===
-function setupScrollAnchors() {
-  document.addEventListener('click', function(e) {
-    var el = e.target, on = false;
-    while (el && el !== document.body) { if (el.classList && (el.classList.contains('anchor-dot') || el.classList.contains('anchor-card'))) { on = true; break; } el = el.parentElement; }
-    if (!on) {
-      var cards = document.querySelectorAll('.anchor-card');
-      for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); cards[i].classList.remove('show'); }
-    }
-  });
-}
+// === Scroll anchors (replaced below) ===
+function setupScrollAnchors() { /* handled inline */ }
 
-var anchorFocusIdx = -1; // sticky focus for recentering
+var anchorData = [];
+var anchorFocusIdx = -1;
 
 function updateAnchors(focusIdx) {
   var container = $s('#scrollAnchors');
   var rows = $s('#chatMessages').querySelectorAll('.msg-row.user');
-  if (rows.length <= 1) { container.style.display = 'none'; return; }
-  var v = [];
-  for (var i = 0; i < rows.length; i++) { var b = rows[i].querySelector('.msg-bubble'); if (b) v.push({ id: rows[i].id, c: b.textContent || '' }); }
+  if (rows.length <= 1) { container.style.display = 'none'; anchorData = []; return; }
+
+  anchorData = [];
+  for (var i = 0; i < rows.length; i++) {
+    var b = rows[i].querySelector('.msg-bubble');
+    if (b) anchorData.push({ id: rows[i].id, text: b.textContent || '', el: rows[i] });
+  }
+
   var maxDots = 8;
-  var startIdx = 0;
+  var start = 0;
   if (focusIdx !== undefined && focusIdx >= 0) { anchorFocusIdx = focusIdx; }
-  if (anchorFocusIdx >= 0 && anchorFocusIdx < v.length) {
-    startIdx = Math.max(0, anchorFocusIdx - Math.floor(maxDots / 2));
-    if (startIdx + maxDots > v.length) startIdx = v.length - maxDots;
-  } else if (v.length > maxDots) {
-    startIdx = v.length - maxDots;
+  if (anchorFocusIdx >= 0 && anchorFocusIdx < anchorData.length) {
+    start = Math.max(0, Math.min(anchorFocusIdx - Math.floor(maxDots / 2), anchorData.length - maxDots));
+  } else if (anchorData.length > maxDots) {
+    start = anchorData.length - maxDots;
   }
-  var dots = v.slice(startIdx, startIdx + maxDots);
-  container.style.display = 'flex'; var h = '';
-  for (var i = 0; i < dots.length; i++) {
-    var dotIdx = startIdx + i;
-    var cm = '';
-    for (var j = 0; j < v.length; j++) { cm += '<div class="ac-msg ' + (j === dotIdx ? 'current' : 'other') + '" onclick="jumpToMsg(\'' + v[j].id + '\')">' + he(v[j].c.slice(0, 60)) + (v[j].c.length > 60 ? '...' : '') + '</div>'; }
-    h += '<div class="anchor-dot" data-idx="' + dotIdx + '" data-id="' + dots[i].id + '" onclick="jumpToMsg(\'' + dots[i].id + '\')"><div class="anchor-card">' + cm + '</div></div>';
+
+  var visible = anchorData.slice(start, start + maxDots);
+  container.style.display = 'flex';
+  container.innerHTML = '';
+
+  for (var i = 0; i < visible.length; i++) {
+    var gi = start + i;
+    var dot = document.createElement('div');
+    dot.className = 'anchor-dot';
+    dot.setAttribute('data-idx', gi);
+    dot.setAttribute('data-id', visible[i].id);
+
+    var card = document.createElement('div');
+    card.className = 'anchor-card';
+    for (var j = 0; j < anchorData.length; j++) {
+      var m = document.createElement('div');
+      m.className = 'ac-msg' + (j === gi ? ' current' : ' other');
+      m.textContent = anchorData[j].text.length > 60 ? anchorData[j].text.slice(0, 60) + '...' : anchorData[j].text;
+      m.setAttribute('data-msgid', anchorData[j].id);
+      m.addEventListener('click', function(e) {
+        e.stopPropagation();
+        closeAllCards();
+        jumpToMsg(this.getAttribute('data-msgid'));
+      });
+      card.appendChild(m);
+    }
+    dot.appendChild(card);
+
+    var timer;
+    function showCard() { clearTimeout(timer); card.classList.add('show'); }
+    function hideCard() { timer = setTimeout(function() { card.classList.remove('show'); }, 200); }
+    dot.addEventListener('mouseenter', showCard);
+    dot.addEventListener('mouseleave', hideCard);
+    card.addEventListener('mouseenter', showCard);
+    card.addEventListener('mouseleave', hideCard);
+
+    dot.addEventListener('click', function(e) {
+      if (e.target === dot || e.target.classList.contains('anchor-dot')) {
+        closeAllCards();
+        jumpToMsg(this.getAttribute('data-id'));
+      }
+    }.bind(dot));
+
+    container.appendChild(dot);
   }
-  container.innerHTML = h;
-  // Add mouse events to dots for card visibility
-  var dotEls = container.querySelectorAll('.anchor-dot');
-  for (var d = 0; d < dotEls.length; d++) {
-    (function(dot, card) {
-      var hideTimer;
-      dot.addEventListener('mouseenter', function() { clearTimeout(hideTimer); card.classList.add('show'); card.classList.remove('hidden'); });
-      dot.addEventListener('mouseleave', function() { hideTimer = setTimeout(function() { card.classList.remove('show'); card.classList.add('hidden'); }, 100); });
-      card.addEventListener('mouseenter', function() { clearTimeout(hideTimer); card.classList.add('show'); card.classList.remove('hidden'); });
-      card.addEventListener('mouseleave', function() { hideTimer = setTimeout(function() { card.classList.remove('show'); card.classList.add('hidden'); }, 100); });
-    })(dotEls[d], dotEls[d].querySelector('.anchor-card'));
-  }
-  highlightActiveAnchor(v);
+  highlightActive();
 }
 
-function highlightActiveAnchor(allMsgs) {
+function closeAllCards() {
+  var cards = document.querySelectorAll('.anchor-card');
+  for (var i = 0; i < cards.length; i++) { cards[i].classList.remove('show'); }
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.anchor-dot') && !e.target.closest('.anchor-card')) {
+    closeAllCards();
+  }
+});
+
+function highlightActive() {
   var msgsEl = $s('#chatMessages');
-  var viewTop = msgsEl.scrollTop;
-  var viewBottom = viewTop + msgsEl.clientHeight;
+  if (!msgsEl || anchorData.length === 0) return;
+  var t = msgsEl.scrollTop;
+  var b = t + msgsEl.clientHeight;
   var best = -1;
-  // Find the topmost user message that is within the viewport
-  for (var i = 0; i < allMsgs.length; i++) {
-    var el = document.getElementById(allMsgs[i].id);
-    if (!el) continue;
-    var elTop = el.offsetTop;
-    var elBottom = elTop + el.offsetHeight;
-    // Message is at least 30% visible in viewport
-    var visibleTop = Math.max(elTop, viewTop);
-    var visibleBottom = Math.min(elBottom, viewBottom);
-    var visibleHeight = visibleBottom - visibleTop;
-    if (visibleHeight > el.offsetHeight * 0.3) {
-      best = i; break; // Take the first one that's sufficiently visible
-    }
+  for (var i = 0; i < anchorData.length; i++) {
+    var el = anchorData[i].el; if (!el) continue;
+    if (el.offsetTop + el.offsetHeight > t && el.offsetTop < b) { best = i; break; }
   }
-  // If none visible, find closest to viewport center
-  if (best < 0) {
-    var viewCenter = viewTop + msgsEl.clientHeight / 2;
-    var bestDist = Infinity;
-    for (var i = 0; i < allMsgs.length; i++) {
-      var el = document.getElementById(allMsgs[i].id);
-      if (!el) continue;
-      var dist = Math.abs((el.offsetTop + el.offsetHeight / 2) - viewCenter);
-      if (dist < bestDist) { bestDist = dist; best = i; }
-    }
-  }
+  if (best < 0) best = anchorData.length - 1;
   var dots = document.querySelectorAll('.anchor-dot');
   for (var i = 0; i < dots.length; i++) {
     var idx = parseInt(dots[i].getAttribute('data-idx'));
-    if (idx === best) { dots[i].classList.add('active'); } else { dots[i].classList.remove('active'); }
+    dots[i].classList.toggle('active', idx === best);
   }
 }
 
 function jumpToMsg(id) {
   var el = document.getElementById(id); if (!el) return;
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  el.style.transition = 'box-shadow .3s'; el.style.boxShadow = '0 0 0 3px rgba(99,102,241,.3)'; el.style.borderRadius = '8px';
+  el.style.boxShadow = '0 0 0 3px rgba(99,102,241,.3)'; el.style.borderRadius = '8px';
   setTimeout(function() { el.style.boxShadow = ''; }, 1500);
-  // Recenter dots & hide cards
-  var rows = $s('#chatMessages').querySelectorAll('.msg-row.user');
-  for (var i = 0; i < rows.length; i++) {
-    if (rows[i].id === id) { updateAnchors(i); break; }
+  for (var i = 0; i < anchorData.length; i++) {
+    if (anchorData[i].id === id) { updateAnchors(i); return; }
   }
-  var cards = document.querySelectorAll('.anchor-card');
-  for (var i = 0; i < cards.length; i++) { cards[i].classList.add('hidden'); cards[i].classList.remove('show'); }
 }
 
 function setupAutoScroll() {
@@ -662,7 +671,7 @@ function setupAutoScroll() {
     var rows = msgs.querySelectorAll('.msg-row.user');
     var v = [];
     for (var i = 0; i < rows.length; i++) { var b = rows[i].querySelector('.msg-bubble'); if (b) v.push({ id: rows[i].id, c: b.textContent || '' }); }
-    if (v.length > 0) highlightActiveAnchor(v);
+    if (anchorData.length > 0) highlightActive();
   });
 }
 
