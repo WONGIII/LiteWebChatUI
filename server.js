@@ -58,6 +58,7 @@ exec(`CREATE TABLE IF NOT EXISTS providers (id INTEGER PRIMARY KEY AUTOINCREMENT
 exec(`CREATE TABLE IF NOT EXISTS models (id INTEGER PRIMARY KEY AUTOINCREMENT, provider_id INTEGER REFERENCES providers(id), model_id TEXT NOT NULL, display_name TEXT, logo_url TEXT, visible INTEGER DEFAULT 1, context_window INTEGER, max_tokens INTEGER, supports_reasoning INTEGER DEFAULT 0, supports_vision INTEGER DEFAULT 0, is_custom INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`);
 exec(`CREATE TABLE IF NOT EXISTS conversations (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id), title TEXT DEFAULT '新对话', model_id TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`);
 exec(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`);
+exec(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires INTEGER NOT NULL)`);
 exec(`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE, role TEXT NOT NULL, model_id TEXT, content TEXT NOT NULL, reasoning TEXT, tokens_used INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
 exec(`CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at)`);
 
@@ -69,12 +70,12 @@ try { queryOne("SELECT is_custom FROM models LIMIT 1"); } catch(e) { exec("ALTER
 const adminCount = queryOne("SELECT COUNT(*) as c FROM users WHERE is_admin=1");
 let needsSetup = (adminCount && adminCount.c === 0);
 
-const sessions = new Map();
 const SESSION_TTL = 24 * 60 * 60 * 1000;
 
 function setSession(res, userId) {
   const sid = crypto.randomUUID();
-  sessions.set(sid, { userId, expires: Date.now() + SESSION_TTL });
+  const expires = Date.now() + SESSION_TTL;
+  run("INSERT OR REPLACE INTO sessions (id, user_id, expires) VALUES (?, ?, ?)", [sid, userId, expires]);
   res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL / 1000}`);
   return sid;
 }
@@ -83,9 +84,10 @@ function getSession(req) {
   const cookie = (req.headers.cookie || '').split(';').find(c => c.trim().startsWith('sid='));
   if (!cookie) return null;
   const sid = cookie.split('=')[1].trim();
-  const s = sessions.get(sid);
-  if (!s || s.expires < Date.now()) { sessions.delete(sid); return null; }
-  return s;
+  const now = Date.now();
+  const row = queryOne("SELECT * FROM sessions WHERE id=? AND expires>?", [sid, now]);
+  if (!row) { run("DELETE FROM sessions WHERE id=?", [sid]); return null; }
+  return { userId: row.user_id, expires: row.expires };
 }
 
 function json(res, data, status = 200) {
@@ -220,6 +222,8 @@ const server = createServer(async (req, res) => {
   }
 
   if (method === 'POST' && path === '/api/auth/logout') {
+    const s = getSession(req);
+    if (s) run("DELETE FROM sessions WHERE user_id=?", [s.userId]);
     res.setHeader('Set-Cookie', 'sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
     return json(res, { ok: true });
   }
@@ -489,10 +493,7 @@ const server = createServer(async (req, res) => {
 });
 
 setInterval(() => {
-  const now = Date.now();
-  for (const [sid, s] of sessions) {
-    if (s.expires < now) sessions.delete(sid);
-  }
+  run("DELETE FROM sessions WHERE expires<?", [Date.now()]);
 }, 300000);
 
 server.listen(PORT, () => {
