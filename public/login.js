@@ -54,6 +54,7 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (!res.ok) { formError.textContent = data.error || '请求失败'; return; }
+    if (data.csrfToken) localStorage.setItem('csrfToken', data.csrfToken);
     if (data.user && data.user.is_admin) {
       window.location.href = '/admin';
     } else if (isRegister) {

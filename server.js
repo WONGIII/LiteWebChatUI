@@ -58,7 +58,7 @@ exec(`CREATE TABLE IF NOT EXISTS providers (id INTEGER PRIMARY KEY AUTOINCREMENT
 exec(`CREATE TABLE IF NOT EXISTS models (id INTEGER PRIMARY KEY AUTOINCREMENT, provider_id INTEGER REFERENCES providers(id), model_id TEXT NOT NULL, display_name TEXT, logo_url TEXT, visible INTEGER DEFAULT 1, context_window INTEGER, max_tokens INTEGER, supports_reasoning INTEGER DEFAULT 0, supports_vision INTEGER DEFAULT 0, is_custom INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now')))`);
 exec(`CREATE TABLE IF NOT EXISTS conversations (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id), title TEXT DEFAULT '新对话', model_id TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now')))`);
 exec(`CREATE INDEX IF NOT EXISTS idx_conv_user ON conversations(user_id, updated_at DESC)`);
-exec(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, expires INTEGER NOT NULL)`);
+exec(`CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, csrf_token TEXT, expires INTEGER NOT NULL)`);
 exec(`CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE, role TEXT NOT NULL, model_id TEXT, content TEXT NOT NULL, reasoning TEXT, tokens_used INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
 exec(`CREATE INDEX IF NOT EXISTS idx_msg_conv ON messages(conversation_id, created_at)`);
 
@@ -74,10 +74,12 @@ const SESSION_TTL = 24 * 60 * 60 * 1000;
 
 function setSession(res, userId) {
   const sid = crypto.randomUUID();
+  const csrfToken = crypto.randomUUID();
   const expires = Date.now() + SESSION_TTL;
-  run("INSERT OR REPLACE INTO sessions (id, user_id, expires) VALUES (?, ?, ?)", [sid, userId, expires]);
-  res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL / 1000}`);
-  return sid;
+  run("INSERT OR REPLACE INTO sessions (id, user_id, csrf_token, expires) VALUES (?, ?, ?, ?)", [sid, userId, csrfToken, expires]);
+  const isSecure = process.env.NODE_ENV === 'production';
+  res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL / 1000}${isSecure ? '; Secure' : ''}`);
+  return { sid, csrfToken };
 }
 
 function getSession(req) {
@@ -87,7 +89,14 @@ function getSession(req) {
   const now = Date.now();
   const row = queryOne("SELECT * FROM sessions WHERE id=? AND expires>?", [sid, now]);
   if (!row) { run("DELETE FROM sessions WHERE id=?", [sid]); return null; }
-  return { userId: row.user_id, expires: row.expires };
+  return { userId: row.user_id, expires: row.expires, csrfToken: row.csrf_token };
+}
+
+function verifyCsrf(req) {
+  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') return true;
+  const token = req.headers['x-csrf-token'] || '';
+  const s = getSession(req);
+  return s && s.csrfToken && s.csrfToken === token;
 }
 
 function json(res, data, status = 200) {
@@ -190,6 +199,11 @@ const server = createServer(async (req, res) => {
     if (redirects[path]) { res.writeHead(301, { Location: redirects[path] }); res.end(); return; }
   }
 
+  // CSRF validation for state-changing requests
+  if ((method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') && path.startsWith('/api/')) {
+    if (!verifyCsrf(req)) return json(res, { error: 'CSRF token invalid' }, 403);
+  }
+
   // --- Auth ---
   if (method === 'GET' && path === '/api/auth/me') {
     const s = getSession(req);
@@ -207,8 +221,8 @@ const server = createServer(async (req, res) => {
     const isAdmin = needsSetup ? 1 : 0;
     const id = insert("INSERT INTO users (email, password_hash, is_admin, approved) VALUES (?,?,?,?)", [email, hash, isAdmin, isAdmin ? 1 : 0]);
     if (isAdmin) needsSetup = false;
-    setSession(res, id);
-    return json(res, { user: { id, email, is_admin: isAdmin } }, 201);
+    const { csrfToken } = setSession(res, id);
+    return json(res, { user: { id, email, is_admin: isAdmin }, csrfToken }, 201);
   }
 
   if (method === 'POST' && path === '/api/auth/login') {
@@ -217,14 +231,15 @@ const server = createServer(async (req, res) => {
     if (!user) return json(res, { error: '邮箱或密码错误' }, 401);
     const ok = bcrypt.compareSync(password, user.password_hash);
     if (!ok) return json(res, { error: '邮箱或密码错误' }, 401);
-    setSession(res, user.id);
-    return json(res, { user: { id: user.id, email: user.email, is_admin: user.is_admin, approved: user.approved } });
+    const { csrfToken } = setSession(res, user.id);
+    return json(res, { user: { id: user.id, email: user.email, is_admin: user.is_admin, approved: user.approved }, csrfToken });
   }
 
   if (method === 'POST' && path === '/api/auth/logout') {
     const s = getSession(req);
     if (s) run("DELETE FROM sessions WHERE user_id=?", [s.userId]);
-    res.setHeader('Set-Cookie', 'sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
+    const isSecure = process.env.NODE_ENV === 'production';
+    res.setHeader('Set-Cookie', `sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${isSecure ? '; Secure' : ''}`);
     return json(res, { ok: true });
   }
 
@@ -265,8 +280,7 @@ const server = createServer(async (req, res) => {
         headers: { 'Authorization': `Bearer ${provider.api_key}`, 'Content-Type': 'application/json' }
       });
       if (!resp.ok) {
-        const et = await resp.text().catch(() => '');
-        return json(res, { error: `API ${resp.status}: ${et.slice(0, 200)}` }, 502);
+        return json(res, { error: '获取模型列表失败，请检查 API 配置' }, 502);
       }
       const data = await resp.json();
       const modelList = data.data || data;
@@ -276,7 +290,7 @@ const server = createServer(async (req, res) => {
       }
       return json(res, { ok: true, count: modelList.length });
     } catch (err) {
-      return json(res, { error: `请求失败: ${err.message}` }, 502);
+      return json(res, { error: '请求失败，请检查网络连接和 API 配置' }, 502);
     }
   }
 
@@ -316,10 +330,17 @@ const server = createServer(async (req, res) => {
     const buffers = [];
     for await (const chunk of req) buffers.push(chunk);
     const buf = Buffer.concat(buffers);
+    if (buf.length > 2 * 1024 * 1024) return json(res, { error: '文件大小不能超过2MB' }, 400);
     const result = parseMultipart(buf, req.headers['content-type']);
     if (!result) return json(res, { error: '未找到上传文件' }, 400);
     const ext = result.filename.split('.').pop().toLowerCase();
-    if (!['png', 'jpg', 'jpeg', 'svg', 'webp'].includes(ext)) return json(res, { error: '仅支持 PNG/JPG/SVG/WEBP' }, 400);
+    if (!['png', 'jpg', 'jpeg', 'webp'].includes(ext)) return json(res, { error: '仅支持 PNG/JPG/WEBP' }, 400);
+    const mimeMap = { png: [0x89, 0x50, 0x4E, 0x47], jpg: [0xFF, 0xD8, 0xFF], jpeg: [0xFF, 0xD8, 0xFF], webp: [0x52, 0x49, 0x46, 0x46] };
+    const magic = mimeMap[ext];
+    if (magic && result.data.length >= magic.length) {
+      const header = Array.from(result.data.slice(0, magic.length));
+      if (JSON.stringify(header) !== JSON.stringify(magic)) return json(res, { error: '文件内容与扩展名不匹配' }, 400);
+    }
     const filename = `model_${mid}_${Date.now()}.${ext}`;
     writeFileSync(join(UPLOADS_DIR, filename), result.data);
     const logoUrl = `/uploads/${filename}`;
@@ -436,8 +457,7 @@ const server = createServer(async (req, res) => {
       });
 
       if (!apiResp.ok) {
-        const et = await apiResp.text().catch(() => '');
-        sse('error', { message: `API ${apiResp.status}: ${et.slice(0, 500)}` });
+        sse('error', { message: 'AI 服务请求失败，请稍后重试' });
         sse('done', {});
         return res.end();
       }
@@ -481,7 +501,7 @@ const server = createServer(async (req, res) => {
       run("INSERT INTO messages (conversation_id, role, model_id, content, reasoning) VALUES (?,?,?,?,?)", [conversation_id, 'assistant', modelId, fullContent, fullReasoning || null]);
       sse('done', {});
     } catch (err) {
-      sse('error', { message: err.message });
+      sse('error', { message: '请求处理失败，请稍后重试' });
       sse('done', {});
     }
     res.end();

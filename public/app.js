@@ -32,6 +32,8 @@ $s('#themeToggle').addEventListener('click', function() {
 });
 
 // === Auth ===
+function getCsrfToken() { return localStorage.getItem('csrfToken') || ''; }
+
 async function init() {
   try {
     var res = await fetch('/api/auth/me');
@@ -54,7 +56,7 @@ async function init() {
 }
 
 $s('#logoutBtn').addEventListener('click', async function() {
-  await fetch('/api/auth/logout', { method: 'POST' });
+  await fetch('/api/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() } });
   window.location.href = '/login';
 });
 
@@ -123,7 +125,7 @@ function renderConvList() {
 
 async function newConversation() {
   if (!currentModel) return;
-  var res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ model_id: currentModel.model_id }) });
+  var res = await fetch('/api/conversations', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() }, body: JSON.stringify({ model_id: currentModel.model_id }) });
   var conv = await res.json();
   conversations.unshift(conv);
   messageModels = {}; userMessages = [];
@@ -189,7 +191,7 @@ async function openConversation(id) {
 }
 
 async function deleteConv(id) {
-  await fetch('/api/conversations/' + id, { method: 'DELETE' });
+  await fetch('/api/conversations/' + id, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfToken() } });
   conversations = conversations.filter(function(c) { return c.id !== id; });
   delete convCache[id];
   if (currentConvId === id) {
@@ -252,7 +254,7 @@ async function sendMessage() {
 
     var res = await fetch('/api/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
       body: JSON.stringify({ conversation_id: thisConvId, model: currentModel.model_id, messages: history })
     });
 
@@ -481,7 +483,7 @@ function toggleThink(aId) {
 async function updateConvTitle(convId, title) {
   var c = conversations.find(function(x) { return x.id === convId; });
   if (c) { c.title = title; renderConvList(); }
-  try { await fetch('/api/conversations/' + convId, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title }) }); } catch(e) {}
+  try { await fetch('/api/conversations/' + convId, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() }, body: JSON.stringify({ title: title }) }); } catch(e) {}
 }
 
 // === Helpers ===
@@ -536,10 +538,15 @@ function rT(lines, s) {
   return h + '</table>';
 }
 
+function safeUrl(url) {
+  var u = (url || '').trim().toLowerCase();
+  if (u.startsWith('javascript:') || u.startsWith('data:') || u.startsWith('vbscript:')) return '#';
+  return url;
+}
 function rI(t) {
   var s = he(t);
-  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
-  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, function(m, alt, url) { return '<img src="' + safeUrl(url) + '" alt="' + alt + '">'; });
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(m, text, url) { return '<a href="' + safeUrl(url) + '" target="_blank" rel="noopener noreferrer">' + text + '</a>'; });
   s = s.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/\*([^*\n]+?)\*/g, '<em>$1</em>');

@@ -1,4 +1,5 @@
 var tc = document.getElementById('toastContainer');
+function getCsrfToken() { return localStorage.getItem('csrfToken') || ''; }
 function toast(msg, type) {
   var el = document.createElement('div');
   el.className = 'toast ' + (type || 'success');
@@ -26,7 +27,7 @@ async function checkAdmin() {
 checkAdmin();
 
 document.getElementById('logoutBtn').addEventListener('click', async function() {
-  await fetch('/api/auth/logout', { method: 'POST' });
+  await fetch('/api/auth/logout', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() } });
   window.location.href = '/login';
 });
 
@@ -73,7 +74,7 @@ document.getElementById('addProviderBtn').addEventListener('click', async functi
   if (!api_key) { toast('请填写 API Key', 'error'); return; }
   var res = await fetch('/api/admin/providers', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
     body: JSON.stringify({ name: name, base_url: base_url, api_key: api_key })
   });
   if (res.ok) {
@@ -89,7 +90,7 @@ document.getElementById('addProviderBtn').addEventListener('click', async functi
 });
 
 async function fetchModels(pid) {
-  var res = await fetch('/api/admin/providers/' + pid + '/fetch', { method: 'POST' });
+  var res = await fetch('/api/admin/providers/' + pid + '/fetch', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() } });
   var data = await res.json();
   if (res.ok) { toast('获取到 ' + data.count + ' 个模型'); loadModels(); }
   else toast(data.error || '获取失败', 'error');
@@ -97,7 +98,7 @@ async function fetchModels(pid) {
 
 async function deleteProvider(pid) {
   if (!confirm('删除提供商将同时删除其下所有模型，确定？')) return;
-  await fetch('/api/admin/providers/' + pid, { method: 'DELETE' });
+  await fetch('/api/admin/providers/' + pid, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfToken() } });
   toast('已删除');
   loadProviders();
   loadModels();
@@ -136,7 +137,7 @@ async function loadModels() {
 }
 
 async function deleteModel(mid) {
-  await fetch('/api/admin/models/' + mid, { method: 'DELETE' });
+  await fetch('/api/admin/models/' + mid, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfToken() } });
   toast('已删除');
   loadModels();
 }
@@ -144,12 +145,12 @@ async function deleteModel(mid) {
 async function toggleModel(mid, field, val) {
   var body = {};
   body[field] = val;
-  await fetch('/api/admin/models/' + mid, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  await fetch('/api/admin/models/' + mid, { method: 'PATCH', headers: {'Content-Type':'application/json', 'X-CSRF-Token': getCsrfToken()}, body: JSON.stringify(body) });
   loadModels();
 }
 
 function updateModel(mid, el) {
-  fetch('/api/admin/models/' + mid, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({display_name: el.value.trim()}) });
+  fetch('/api/admin/models/' + mid, { method: 'PATCH', headers: {'Content-Type':'application/json', 'X-CSRF-Token': getCsrfToken()}, body: JSON.stringify({display_name: el.value.trim()}) });
 }
 
 function uploadLogo(mid) {
@@ -159,7 +160,7 @@ function uploadLogo(mid) {
   input.onchange = async function() {
     var file = input.files[0]; if (!file) return;
     var fd = new FormData(); fd.append('logo', file);
-    var res = await fetch('/api/admin/models/' + mid + '/logo', { method: 'POST', body: fd });
+    var res = await fetch('/api/admin/models/' + mid + '/logo', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, body: fd });
     if (res.ok) { toast('Logo 已更新'); loadModels(); }
     else { var d = await res.json(); toast(d.error || '上传失败', 'error'); }
   };
@@ -181,7 +182,7 @@ document.getElementById('saveCustomModelBtn').addEventListener('click', async fu
   if (!mid) { toast('请填写模型 ID', 'error'); return; }
   var res = await fetch('/api/admin/models/custom', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
     body: JSON.stringify({ provider_id: pid, model_id: mid, display_name: name || mid, visible: 1, supports_reasoning: reasoning })
   });
   var data = await res.json();
@@ -201,7 +202,7 @@ function getChecked() {
 
 async function batchSetVisible(mids, val) {
   for (var i = 0; i < mids.length; i++) {
-    await fetch('/api/admin/models/' + mids[i], { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({visible: val}) });
+    await fetch('/api/admin/models/' + mids[i], { method: 'PATCH', headers: {'Content-Type':'application/json', 'X-CSRF-Token': getCsrfToken()}, body: JSON.stringify({visible: val}) });
   }
   loadModels();
 }
@@ -277,14 +278,14 @@ async function loadUsers() {
 }
 
 async function approveUser(uid, val) {
-  await fetch('/api/admin/users/' + uid, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({approved: val}) });
+  await fetch('/api/admin/users/' + uid, { method: 'PATCH', headers: {'Content-Type':'application/json', 'X-CSRF-Token': getCsrfToken()}, body: JSON.stringify({approved: val}) });
   toast(val ? '已通过' : '已驳回');
   loadUsers();
 }
 
 async function deleteUser(uid) {
   if (!confirm('确定删除该用户？此操作不可撤销。')) return;
-  await fetch('/api/admin/users/' + uid, { method: 'DELETE' });
+  await fetch('/api/admin/users/' + uid, { method: 'DELETE', headers: { 'X-CSRF-Token': getCsrfToken() } });
   toast('已删除');
   loadUsers();
 }
