@@ -135,7 +135,14 @@ a { color: inherit; text-decoration: none; }
 }
 .sidebar-header { padding: clamp(10px, 1vw, 14px); border-bottom: 1px solid var(--border-secondary); }
 .sidebar-header .btn-primary { width: 100%; font-size: var(--fs-sm); }
-.conv-list { flex: 1; overflow-y: auto; padding: clamp(6px, 0.6vw, 10px); }
+.conv-list { flex: 1; overflow-y: overlay; padding: clamp(6px, 0.6vw, 10px); }
+.conv-list::-webkit-scrollbar { width: 5px; }
+.conv-list::-webkit-scrollbar-track { background: transparent; }
+.conv-list::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; transition: background .3s 1s; }
+.conv-list:hover::-webkit-scrollbar-thumb { background: var(--border-primary); transition: background .15s 0s; }
+.conv-list:hover::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+.conv-list { scrollbar-width: none; }
+.conv-list:hover { scrollbar-width: thin; scrollbar-color: var(--border-primary) transparent; }
 .conv-item {
   display: flex; align-items: center; gap: 8px;
   padding: clamp(9px, 0.7vw + 4px, 13px) clamp(10px, 0.8vw + 4px, 14px);
