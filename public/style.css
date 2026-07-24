@@ -560,6 +560,40 @@ a {
   background: var(--chat-bg);
 }
 
+/* Chat messages scrollbar - hidden track */
+.chat-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-messages::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 300ms ease 1000ms;
+}
+
+.chat-messages:hover::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  transition: background 150ms ease 0s;
+}
+
+.chat-messages:hover::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Firefox scrollbar */
+.chat-messages {
+  scrollbar-width: none;
+}
+
+.chat-messages:hover {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-primary) transparent;
+}
+
 /* === Messages === */
 .msg-row {
   display: flex;
