@@ -341,36 +341,85 @@ function renderStreamed(convId, aId, content, reasoning) {
   var thinkStream = document.getElementById(aId + '-think');
   var thinkDone = document.getElementById(aId + '-think-done');
 
+  // Prevent duplicate: if thinkDone already exists, skip reasoning rendering
+  if (thinkDone) {
+    // Only update content if needed
+    if (content) {
+      var contentEl = document.getElementById(aId + '-content');
+      if (!contentEl) {
+        body.insertAdjacentHTML('beforeend', '<div class="msg-content" id="' + aId + '-content"></div>');
+        contentEl = document.getElementById(aId + '-content');
+      }
+      if (contentEl) {
+        if (reasoning === 'error') {
+          contentEl.innerHTML = '<div class="msg-error-bubble">' + he(content) + '</div>';
+        } else {
+          contentEl.innerHTML = renderMd(content);
+          if (highlightLoaded && contentEl.querySelector('pre code')) {
+            var codes = contentEl.querySelectorAll('pre code');
+            for (var ci = 0; ci < codes.length; ci++) { if (window.hljs) hljs.highlightElement(codes[ci]); }
+          }
+          bindCodeButtons(aId);
+        }
+      }
+    }
+    return;
+  }
+
   if (typeof reasoning === 'string' && reasoning !== 'collapse' && reasoning !== 'done') {
     // Streaming reasoning: create or update, save raw text
-    if (!thinkStream && !thinkDone) {
+    if (!thinkStream) {
       body.insertAdjacentHTML('afterbegin',
-        '<div class="think-streaming" id="' + aId + '-think" data-raw="' + he_attr(reasoning) + '"><div class="think-bar"></div>' +
-        '<div style="flex:1;"><div style="font-size:12px;color:var(--text-secondary);margin-bottom:3px;">正在思考 <span class="think-dots"><span></span><span></span><span></span></span></div>' +
-        '<div class="think-content"></div></div></div>'
+        '<div class="think-streaming" id="' + aId + '-think" data-raw="' + he_attr(reasoning) + '">' +
+        '<div class="think-bar"></div>' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">' +
+            '正在思考 <span class="think-dots"><span></span><span></span><span></span></span>' +
+          '</div>' +
+          '<div class="think-content"></div>' +
+        '</div>' +
+      '</div>'
       );
-    } else if (thinkStream) {
+    } else {
       thinkStream.setAttribute('data-raw', reasoning);
     }
-    var tc = document.getElementById(aId + '-think-content') || (thinkStream ? thinkStream.querySelector('.think-content') : null);
+    var tc = (thinkStream || document.getElementById(aId + '-think')).querySelector('.think-content');
     if (tc) tc.innerHTML = renderMd(reasoning);
   }
 
-  if ((reasoning === 'collapse' || reasoning === 'done') && thinkStream && !thinkDone) {
-    // Collapse reasoning: use raw text from data-raw attribute
+  if ((reasoning === 'collapse' || reasoning === 'done') && thinkStream) {
+    // Collapse reasoning - with exit animation
     var savedR = thinkStream.getAttribute('data-raw') || '';
-    thinkStream.style.animation = 'thinkCollapse .35s ease-in forwards';
+    
+    // Add exit animation
+    thinkStream.style.opacity = '0';
+    thinkStream.style.transition = 'opacity 150ms ease-out';
+    
     setTimeout(function() {
       var ts = document.getElementById(aId + '-think');
       if (ts) ts.remove();
-    }, 350);
-    if (savedR) {
-      body.insertAdjacentHTML('afterbegin',
-        '<div class="think-collapsed" id="' + aId + '-think-done" data-reasoning="' + he_attr(savedR) + '" onclick="toggleThink(\'' + aId + '\')">' +
-        '<div class="think-bar"></div><span>已深度思考</span>' +
-        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg></div>'
-      );
-    }
+      
+      // Check again if thinkDone was already created
+      if (document.getElementById(aId + '-think-done')) return;
+      
+      if (savedR) {
+        body.insertAdjacentHTML('afterbegin',
+          '<div class="think-collapsed entering" id="' + aId + '-think-done" data-reasoning="' + he_attr(savedR) + '" onclick="toggleThink(\'' + aId + '\')">' +
+          '<div class="think-bar"></div>' +
+          '<span>已深度思考</span>' +
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg>' +
+          '</div>'
+        );
+        
+        // Remove entering class after animation
+        var newCollapsed = document.getElementById(aId + '-think-done');
+        if (newCollapsed) {
+          setTimeout(function() {
+            newCollapsed.classList.remove('entering');
+          }, 200);
+        }
+      }
+    }, 150);
   }
 
   // Content
@@ -407,15 +456,27 @@ function appendMessage(role, content, reasoning, modelLogoUrl) {
     var logoHtml = modelLogoUrl ? '<div class="msg-avatar-model"><img src="' + modelLogoUrl + '" alt=""></div>' : '<div class="msg-avatar">AI</div>';
     var thinkHtml = '';
     if (reasoning) {
-      thinkHtml = '<div class="think-collapsed" id="' + id + '-think-done" data-reasoning="' + he_attr(reasoning) + '" onclick="toggleThink(\'' + id + '\')">' +
-        '<div class="think-bar"></div><span>已深度思考</span>' +
-        '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg></div>';
+      thinkHtml = '<div class="think-collapsed entering" id="' + id + '-think-done" data-reasoning="' + he_attr(reasoning) + '" onclick="toggleThink(\'' + id + '\')">' +
+        '<div class="think-bar"></div>' +
+        '<span>已深度思考</span>' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transform:rotate(180deg);"><path d="m18 15-6-6-6 6"/></svg>' +
+        '</div>';
     }
     msgs.insertAdjacentHTML('beforeend',
       '<div class="msg-row assistant" id="' + id + '">' + logoHtml +
       '<div class="msg-body">' + thinkHtml + '<div class="msg-content">' + renderMd(content) + '</div></div></div>'
     );
     bindCodeButtons(id);
+    
+    // Remove entering class after animation
+    if (reasoning) {
+      var thinkDone = document.getElementById(id + '-think-done');
+      if (thinkDone) {
+        setTimeout(function() {
+          thinkDone.classList.remove('entering');
+        }, 200);
+      }
+    }
   }
   if (highlightLoaded) {
     var codes = msgs.querySelectorAll('#' + id + ' pre code');
@@ -468,20 +529,53 @@ window.runHtml = function(btn) {
 function toggleThink(aId) {
   var collapsed = document.getElementById(aId + '-think-done');
   var expanded = document.getElementById(aId + '-think-expanded');
+  
   if (!collapsed && !expanded) { return; }
+  
+  // Collapse expanded section - with exit animation
   if (expanded) {
-    expanded.style.animation = 'thinkCollapse .3s ease-in forwards';
-    setTimeout(function() { var e = document.getElementById(aId + '-think-expanded'); if (e) e.remove(); if (collapsed) collapsed.style.display = ''; }, 300);
+    expanded.classList.add('exiting');
+    // Wait for animation to complete, then hide
+    setTimeout(function() {
+      expanded.remove();
+      if (collapsed) {
+        collapsed.style.display = '';
+        collapsed.classList.add('entering');
+        // Remove entering class after animation
+        setTimeout(function() {
+          collapsed.classList.remove('entering');
+        }, 200);
+      }
+    }, 200);
     return;
   }
+  
+  // Expand collapsed section - with entry animation
   if (!collapsed) return;
+  
   var reasoning = collapsed.getAttribute('data-reasoning') || '';
   collapsed.style.display = 'none';
-  var html = '<div class="think-expanded" id="' + aId + '-think-expanded"><div class="think-bar"></div><div style="flex:1;">' +
-    '<div class="think-header" onclick="toggleThink(\'' + aId + '\')"><span>已深度思考</span>' +
-    '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg></div>' +
-    '<div class="think-content">' + renderMd(reasoning) + '</div></div></div>';
+  
+  var html = '<div class="think-expanded entering" id="' + aId + '-think-expanded">' +
+    '<div class="think-bar"></div>' +
+    '<div style="flex:1;">' +
+      '<div class="think-header" onclick="toggleThink(\'' + aId + '\')">' +
+        '<span>已深度思考</span>' +
+        '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>' +
+      '</div>' +
+      '<div class="think-content">' + renderMd(reasoning) + '</div>' +
+    '</div>' +
+  '</div>';
+  
   collapsed.insertAdjacentHTML('afterend', html);
+  
+  // Remove entering class after animation
+  var newExpanded = document.getElementById(aId + '-think-expanded');
+  if (newExpanded) {
+    setTimeout(function() {
+      newExpanded.classList.remove('entering');
+    }, 200);
+  }
 }
 
 async function updateConvTitle(convId, title) {

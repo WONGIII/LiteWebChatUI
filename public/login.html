@@ -14,8 +14,13 @@
 <body>
   <div class="page-center">
     <div class="auth-card">
-      <h1 id="pageTitle">LiteChat</h1>
-      <p class="subtitle" id="pageSubtitle">轻量 AI 对话</p>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+        <img src="/public/logo.svg" width="40" height="40" alt="LiteChat" style="border-radius:10px;">
+        <div>
+          <h1 id="pageTitle" style="margin-bottom:0;">LiteChat</h1>
+          <p class="subtitle" id="pageSubtitle" style="margin-bottom:0;">轻量 AI 对话</p>
+        </div>
+      </div>
       <form id="authForm" autocomplete="on">
         <div class="form-group">
           <label class="form-label">邮箱</label>
@@ -26,7 +31,7 @@
           <input type="password" class="form-input" id="password" placeholder="至少4位" required autocomplete="current-password" minlength="4">
         </div>
         <div class="form-error" id="formError"></div>
-        <button type="submit" class="btn btn-primary" style="width:100%;" id="submitBtn">登录</button>
+        <button type="submit" class="btn btn-primary" style="width:100%;padding:12px 20px;font-size:15px;" id="submitBtn">登录</button>
       </form>
       <div class="footer" id="modeSwitch">
         没有账号？<a href="#" id="toggleMode">去注册</a>
