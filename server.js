@@ -79,7 +79,7 @@ function setSession(res, userId) {
   const expires = Date.now() + SESSION_TTL;
   run("INSERT OR REPLACE INTO sessions (id, user_id, csrf_token, expires) VALUES (?, ?, ?, ?)", [sid, userId, csrfToken, expires]);
   const isSecure = process.env.NODE_ENV === 'production';
-  res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL / 1000}${isSecure ? '; Secure' : ''}`);
+  res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL / 1000}${isSecure ? '; Secure' : ''}`);
   return { sid, csrfToken };
 }
 
@@ -242,7 +242,7 @@ const server = createServer(async (req, res) => {
     const s = getSession(req);
     if (s) run("DELETE FROM sessions WHERE user_id=?", [s.userId]);
     const isSecure = process.env.NODE_ENV === 'production';
-    res.setHeader('Set-Cookie', `sid=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${isSecure ? '; Secure' : ''}`);
+    res.setHeader('Set-Cookie', `sid=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${isSecure ? '; Secure' : ''}`);
     return json(res, { ok: true });
   }
 
