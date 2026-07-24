@@ -262,8 +262,6 @@ async function sendMessage() {
       body: JSON.stringify({ conversation_id: thisConvId, model: currentModel.model_id, messages: history })
     });
 
-    if (handleAuthError(res)) return;
-
     // Remove waiting indicator
     var waitEl = document.getElementById(aId + '-wait');
     if (waitEl) waitEl.remove();
