@@ -77,9 +77,8 @@ function setSession(res, userId) {
   const sid = crypto.randomUUID();
   const csrfToken = crypto.randomUUID();
   const expires = Date.now() + SESSION_TTL;
-  run("INSERT OR REPLACE INTO sessions (id, user_id, csrf_token, expires) VALUES (?, ?, ?, ?)", [sid, userId, csrfToken, expires]);
-  const isSecure = process.env.NODE_ENV === 'production';
-  res.setHeader('Set-Cookie', `sid=${sid}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL / 1000}${isSecure ? '; Secure' : ''}`);
+  run("INSERT INTO sessions (id, user_id, csrf_token, expires) VALUES (?, ?, ?, ?)", [sid, userId, csrfToken, expires]);
+  res.setHeader('Set-Cookie', `sid=${sid}; Path=/; Max-Age=${SESSION_TTL / 1000}`);
   return { sid, csrfToken };
 }
 
@@ -241,8 +240,7 @@ const server = createServer(async (req, res) => {
   if (method === 'POST' && path === '/api/auth/logout') {
     const s = getSession(req);
     if (s) run("DELETE FROM sessions WHERE user_id=?", [s.userId]);
-    const isSecure = process.env.NODE_ENV === 'production';
-    res.setHeader('Set-Cookie', `sid=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${isSecure ? '; Secure' : ''}`);
+    res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0');
     return json(res, { ok: true });
   }
 
