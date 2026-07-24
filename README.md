@@ -141,7 +141,7 @@ LiteWebChatUI/
 ## 协议
 
 <p align="center">
-  MIT License © 2024-Present
+  MIT License © 2026-Present
 </p>
 
 ---
