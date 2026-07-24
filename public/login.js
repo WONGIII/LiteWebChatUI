@@ -11,6 +11,16 @@ const modeSwitch = document.getElementById('modeSwitch');
 
 async function init() {
   try {
+    const meRes = await fetch('/api/auth/me');
+    if (meRes.ok) {
+      const meData = await meRes.json();
+      if (meData.user) {
+        window.location.href = meData.user.is_admin ? '/admin' : '/chat';
+        return;
+      }
+    }
+  } catch (e) {}
+  try {
     const res = await fetch('/api/auth/needs-setup');
     const data = await res.json();
     if (data.needsSetup) {
