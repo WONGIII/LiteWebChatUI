@@ -56,7 +56,7 @@
 - **Markdown 渲染** — 完整支持标题、列表、表格、引用、代码块，HTML 代码可一键运行
 - **深色/浅色主题** — 自由切换，Apple 风格黑白灰配色
 - **响应式** — 桌面端和移动端自适应
-- **精致动效** — Apple 设计原则，流畅的交互动画
+- **精致动效** — 流畅的交互动画
 - **Docker 部署** — 提供 Dockerfile 和 docker-compose
 
 ## 快速开始
@@ -107,10 +107,10 @@ docker-compose up -d
 
 | 类别 | 技术 |
 |------|------|
-| **后端** | Node.js + better-sqlite3 + bcrypt |
+| **后端** | Node.js + sql.js + bcryptjs |
 | **前端** | HTML/CSS/JS（零依赖构建），Lucide 图标，highlight.js |
-| **数据库** | SQLite（单文件，零配置） |
-| **认证** | Session Cookie + bcrypt |
+| **数据库** | SQLite（sql.js，单文件，零配置） |
+| **认证** | Session Cookie + bcryptjs |
 | **部署** | Docker + docker-compose |
 
 ## 环境变量
