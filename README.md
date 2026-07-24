@@ -22,7 +22,7 @@
 ## 演示
 
 <p align="center">
-  <img src="docs/images/demo.gif" alt="LiteChat Demo" width="80%">
+  <img src="docs-images/images/demo.gif" alt="LiteChat Demo" width="80%">
 </p>
 
 ## 截图
@@ -30,17 +30,17 @@
 <table>
   <tr>
     <td align="center">
-      <img src="docs/images/waiting-review.png" alt="等待审核" width="400"><br>
+      <img src="docs-images/images/waiting-review.png" alt="等待审核" width="400"><br>
       <b>等待审核界面</b>
     </td>
     <td align="center">
-      <img src="docs/images/new-chat.png" alt="开始对话" width="400"><br>
+      <img src="docs-images/images/new-chat.png" alt="开始对话" width="400"><br>
       <b>开始对话界面</b>
     </td>
   </tr>
   <tr>
     <td align="center" colspan="2">
-      <img src="docs/images/chat-demo.png" alt="AI对话" width="400"><br>
+      <img src="docs-images/images/chat-demo.png" alt="AI对话" width="400"><br>
       <b>AI 对话界面</b>
     </td>
   </tr>
@@ -93,7 +93,7 @@ docker-compose up -d
 ## 管理面板
 
 <p align="center">
-  <img src="docs/images/admin-panel.png" alt="管理面板" width="80%">
+  <img src="docs-images/images/admin-panel.png" alt="管理面板" width="80%">
 </p>
 
 1. 创建管理员账号后自动跳转管理面板
