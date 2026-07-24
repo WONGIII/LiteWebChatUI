@@ -93,7 +93,7 @@ docker-compose up -d
 ## 管理面板
 
 <p align="center">
-  <img src="docs/images/waiting-review.png" alt="管理面板" width="60%">
+  <img src="docs/images/admin-panel.png" alt="管理面板" width="80%">
 </p>
 
 1. 创建管理员账号后自动跳转管理面板
