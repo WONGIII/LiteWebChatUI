@@ -1274,6 +1274,14 @@ a {
   transition: all var(--duration-fast) var(--ease-default);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  max-width: 200px;
+  overflow: hidden;
+}
+
+.model-select-btn span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .model-select-btn:hover {
@@ -1289,6 +1297,7 @@ a {
   height: 20px;
   border-radius: var(--radius-sm);
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .model-dropdown {
@@ -1301,10 +1310,11 @@ a {
   box-shadow: var(--shadow-xl);
   min-width: 220px;
   max-width: 340px;
-  z-index: 100;
+  z-index: 1000;
   overflow: hidden;
   max-height: 360px;
   overflow-y: auto;
+}
   animation: dropdownIn var(--duration-fast) var(--ease-out);
 }
 
