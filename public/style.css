@@ -560,7 +560,7 @@ a {
   background: var(--chat-bg);
 }
 
-/* Chat messages scrollbar - hidden track */
+/* Chat messages scrollbar - always visible */
 .chat-messages::-webkit-scrollbar {
   width: 6px;
 }
@@ -570,26 +570,16 @@ a {
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 300ms ease 1000ms;
-}
-
-.chat-messages:hover::-webkit-scrollbar-thumb {
   background: var(--border-primary);
-  transition: background 150ms ease 0s;
+  border-radius: 3px;
 }
 
-.chat-messages:hover::-webkit-scrollbar-thumb:hover {
+.chat-messages::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
 
 /* Firefox scrollbar */
 .chat-messages {
-  scrollbar-width: none;
-}
-
-.chat-messages:hover {
   scrollbar-width: thin;
   scrollbar-color: var(--border-primary) transparent;
 }
