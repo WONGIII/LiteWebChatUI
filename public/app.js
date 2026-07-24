@@ -66,7 +66,10 @@ async function loadModels() {
     var res = await fetch('/api/models');
     models = await res.json();
     var visible = models.filter(function(m) { return m.visible; });
-    if (visible.length > 0) selectModel(visible[0]);
+    var savedModelId = localStorage.getItem('selectedModel');
+    var savedModel = savedModelId ? visible.find(function(m) { return m.model_id === savedModelId; }) : null;
+    if (savedModel) selectModel(savedModel);
+    else if (visible.length > 0) selectModel(visible[0]);
     else $s('#modelSelectName').textContent = '无可用模型';
     renderModelDropdown();
   } catch(e) {}
@@ -88,6 +91,7 @@ function renderModelDropdown() {
 
 function selectModel(m) {
   currentModel = m;
+  localStorage.setItem('selectedModel', m.model_id);
   $s('#modelSelectName').textContent = m.display_name || m.model_id;
   var logo = $s('#modelSelectLogo');
   if (m.logo_url) { logo.src = m.logo_url; logo.style.display = ''; } else { logo.style.display = 'none'; }
