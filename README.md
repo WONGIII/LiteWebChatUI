@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://litechat.977744.xyz">官网</a> •
   <a href="#特性">特性</a> •
   <a href="#快速开始">快速开始</a> •
   <a href="#截图">截图</a> •
