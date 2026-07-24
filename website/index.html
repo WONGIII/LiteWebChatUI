@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiteChat - 轻量化 AI 对话平台</title>
+  <meta name="description" content="轻量化、开箱即用的多用户 AI 对话网站。支持多个 API 提供商，流式输出，思考链展示。">
+  <meta property="og:title" content="LiteChat - 轻量化 AI 对话平台">
+  <meta property="og:description" content="轻量化、开箱即用的多用户 AI 对话网站">
+  <meta property="og:image" content="assets/images/logo.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/images/logo.svg">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="/" class="logo">
+        <img src="assets/images/logo.svg" alt="LiteChat">
+        <span>LiteChat</span>
+      </a>
+      <nav class="nav">
+        <a href="#features">功能</a>
+        <a href="#screenshots">截图</a>
+        <a href="https://github.com/WONGIII/LiteWebChatUI" target="_blank">GitHub</a>
+        <a href="privacy.html">隐私政策</a>
+        <a href="terms.html">服务条款</a>
+        <a href="https://github.com/WONGIII/LiteWebChatUI" class="nav-cta" target="_blank">开始使用</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge animate-in">开源 · 免费 · 自部署</div>
+    <h1 class="animate-in">轻量化 AI 对话平台</h1>
+    <p class="animate-in">开箱即用的多用户 AI 对话网站，支持多个 API 提供商，流式输出，思考链展示。零构建，一键部署。</p>
+    <div class="hero-buttons animate-in">
+      <a href="https://github.com/WONGIII/LiteWebChatUI" class="btn-primary" target="_blank">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        查看源码
+      </a>
+      <a href="#demo" class="btn-secondary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        查看演示
+      </a>
+    </div>
+  </section>
+
+  <!-- Demo -->
+  <section id="demo" class="demo">
+    <div class="demo-image">
+      <img src="assets/images/demo.gif" alt="LiteChat 演示">
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="features">
+    <div class="features-content">
+      <div class="section-header">
+        <h2>核心功能</h2>
+        <p>简单易用，功能强大</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card animate-in">
+          <div class="feature-icon">⚡</div>
+          <h3>零构建部署</h3>
+          <p>纯 HTML/CSS/JS 前端，Node.js 单文件后端，无需 webpack/vite，开箱即用。</p>
+        </div>
+        <div class="feature-card animate-in">
+          <div class="feature-icon">👥</div>
+          <h3>多用户管理</h3>
+          <p>开放注册，管理员审核通过后方可使用，完善的用户权限管理。</p>
+        </div>
+        <div class="feature-card animate-in">
+          <div class="feature-icon">🤖</div>
+          <h3>多 API 提供商</h3>
+          <p>支持同时配置多个 OpenAI 兼容 API，包括 OpenAI、DeepSeek、Ollama 等。</p>
+        </div>
+        <div class="feature-card animate-in">
+          <div class="feature-icon">💬</div>
+          <h3>流式输出</h3>
+          <p>SSE 实时推送，切换对话不中断，流畅的对话体验。</p>
+        </div>
+        <div class="feature-card animate-in">
+          <div class="feature-icon">🧠</div>
+          <h3>思考链展示</h3>
+          <p>支持 DeepSeek R1 等推理模型的思考过程展示，折叠/展开动画。</p>
+        </div>
+        <div class="feature-card animate-in">
+          <div class="feature-icon">🎨</div>
+          <h3>精致界面</h3>
+          <p>深色/浅色主题自由切换，响应式设计，桌面端和移动端自适应。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots -->
+  <section id="screenshots" class="screenshots">
+    <div class="section-header">
+      <h2>界面展示</h2>
+      <p>简洁优雅的设计</p>
+    </div>
+    <div class="screenshots-grid">
+      <div class="screenshot-item animate-in">
+        <img src="assets/images/waiting-review.png" alt="等待审核">
+      </div>
+      <div class="screenshot-item animate-in">
+        <img src="assets/images/new-chat.png" alt="开始对话">
+      </div>
+      <div class="screenshot-item animate-in">
+        <img src="assets/images/chat-demo.png" alt="AI 对话">
+      </div>
+    </div>
+  </section>
+
+  <!-- Admin Panel -->
+  <section class="screenshots">
+    <div class="section-header">
+      <h2>管理面板</h2>
+      <p>强大的后台管理</p>
+    </div>
+    <div class="demo-image">
+      <img src="assets/images/admin-panel.png" alt="管理面板">
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <div class="cta-content">
+      <h2>开始使用 LiteChat</h2>
+      <p>免费开源，一键部署，立即体验 AI 对话的魅力。</p>
+      <a href="https://github.com/WONGIII/LiteWebChatUI" class="btn-white" target="_blank">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        在 GitHub 上查看
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="logo">
+          <img src="assets/images/logo.svg" alt="LiteChat">
+          <span>LiteChat</span>
+        </div>
+        <p>轻量化、开箱即用的多用户 AI 对话网站。免费开源，一键部署。</p>
+      </div>
+      <div class="footer-links">
+        <h4>产品</h4>
+        <ul>
+          <li><a href="#features">功能</a></li>
+          <li><a href="#screenshots">截图</a></li>
+          <li><a href="https://github.com/WONGIII/LiteWebChatUI" target="_blank">GitHub</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>文档</h4>
+        <ul>
+          <li><a href="https://github.com/WONGIII/LiteWebChatUI#快速开始" target="_blank">快速开始</a></li>
+          <li><a href="https://github.com/WONGIII/LiteWebChatUI#管理面板" target="_blank">管理面板</a></li>
+          <li><a href="https://github.com/WONGIII/LiteWebChatUI#环境变量" target="_blank">环境变量</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>法律</h4>
+        <ul>
+          <li><a href="privacy.html">隐私政策</a></li>
+          <li><a href="terms.html">服务条款</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 LiteChat. All rights reserved.</span>
+      <div class="footer-social">
+        <a href="https://github.com/WONGIII/LiteWebChatUI" target="_blank" aria-label="GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll Animations -->
+  <script>
+    // Intersection Observer for scroll animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.feature-card, .screenshot-item').forEach(el => {
+      observer.observe(el);
+    });
+  </script>
+
+</body>
+</html>
